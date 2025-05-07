@@ -58,6 +58,10 @@ class ReporteRepository {
         values
       );
       
+      if (!result) {
+        return [];
+      }
+      
       return result.rows;
     } catch (error: any) {
       logger.error('Error al generar reporte de citas', { error: error.message });
@@ -120,13 +124,24 @@ class ReporteRepository {
         values
       );
       
+      // Valores predeterminados en caso de que no haya resultados
+      const defaultTotales = {
+        total: '0',
+        agendadas: '0',
+        atendidas: '0',
+        canceladas: '0',
+        en_espera: '0'
+      };
+      
       // Construir el objeto de resumen
-      const totales = totalResult.rows[0];
+      const totales = totalResult?.rows[0] || defaultTotales;
       const porEspecialidad: Record<string, number> = {};
       
-      especialidadResult.rows.forEach((row: any) => {
-        porEspecialidad[row.especialidad] = parseInt(row.total);
-      });
+      if (especialidadResult?.rows) {
+        especialidadResult.rows.forEach((row: any) => {
+          porEspecialidad[row.especialidad] = parseInt(row.total);
+        });
+      }
       
       return {
         total: parseInt(totales.total) || 0,

@@ -49,7 +49,6 @@ class DisponibilidadRepository {
       
       const fechaObj = new Date(fecha);
       const inicioDelDia = startOfDay(fechaObj);
-      const finDelDia = endOfDay(fechaObj);
       
       // 1. Obtener todas las citas para ese día
       const { citas } = await citaRepo.findByMedicoId(medicoId, fechaObj, 1, 100); // Asumimos max 100 citas por día
@@ -107,6 +106,10 @@ class DisponibilidadRepository {
          WHERE medico_id = $1 AND fecha = $2`,
         [medicoId, fecha]
       );
+      
+      if (!result) {
+        return [];
+      }
       
       return result.rows.map((bloque: any) => ({
         inicio: this.combinarFechaHora(fecha, bloque.hora_inicio),

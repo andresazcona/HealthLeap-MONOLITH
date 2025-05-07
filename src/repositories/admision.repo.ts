@@ -18,6 +18,10 @@ class AdmisionRepository {
         [usuario_id, area]
       );
       
+      if (!result) {
+        throw new AppError('Error al crear personal de admisión', 500);
+      }
+      
       return result.rows[0];
     } catch (error: any) {
       if (error.code === '23505') {
@@ -35,7 +39,7 @@ class AdmisionRepository {
     try {
       const result = await query('SELECT * FROM admisiones WHERE id = $1', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -53,7 +57,7 @@ class AdmisionRepository {
     try {
       const result = await query('SELECT * FROM admisiones WHERE usuario_id = $1', [usuarioId]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -77,7 +81,7 @@ class AdmisionRepository {
         [id]
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -119,7 +123,7 @@ class AdmisionRepository {
         values
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Personal de admisión no encontrado', 404);
       }
       
@@ -138,7 +142,7 @@ class AdmisionRepository {
     try {
       const result = await query('DELETE FROM admisiones WHERE id = $1 RETURNING id', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Personal de admisión no encontrado', 404);
       }
       
@@ -169,9 +173,13 @@ class AdmisionRepository {
       // Obtener el conteo total para paginación
       const countResult = await query('SELECT COUNT(*) FROM admisiones');
       
+      if (!result || !countResult) {
+        return { admisiones: [], total: 0 };
+      }
+      
       return {
         admisiones: result.rows,
-        total: parseInt(countResult.rows[0].count)
+        total: parseInt(countResult.rows[0].count || '0')
       };
     } catch (error: any) {
       logger.error('Error al listar personal de admisión', { error: error.message });
@@ -187,6 +195,10 @@ class AdmisionRepository {
       const result = await query(
         `SELECT DISTINCT area FROM admisiones ORDER BY area ASC`
       );
+      
+      if (!result) {
+        return [];
+      }
       
       return result.rows.map(row => row.area);
     } catch (error: any) {
