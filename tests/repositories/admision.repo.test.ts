@@ -148,7 +148,7 @@ describe('Admision Repository', () => {
       const result = await admisionRepository.update(mockAdmisionId, updateData);
       
       expect(query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE admisiones SET area'),
+        expect.stringMatching(/UPDATE admisiones\s+SET area/),
         expect.arrayContaining(['Urgencias', mockAdmisionId])
       );
       expect(result.area).toBe('Urgencias');
