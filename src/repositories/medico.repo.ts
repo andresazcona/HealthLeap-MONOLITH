@@ -18,7 +18,7 @@ class MedicoRepository {
         [usuario_id, especialidad, centro_id, duracion_cita]
       );
       
-      return result.rows[0];
+      return result?.rows[0];
     } catch (error: any) {
       if (error.code === '23505') {
         throw new AppError('El usuario ya está registrado como médico', 400);
@@ -35,7 +35,7 @@ class MedicoRepository {
     try {
       const result = await query('SELECT * FROM medicos WHERE id = $1', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -53,7 +53,7 @@ class MedicoRepository {
     try {
       const result = await query('SELECT * FROM medicos WHERE usuario_id = $1', [usuarioId]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -77,7 +77,7 @@ class MedicoRepository {
         [id]
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -119,7 +119,7 @@ class MedicoRepository {
         values
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Médico no encontrado', 404);
       }
       
@@ -138,13 +138,18 @@ class MedicoRepository {
     try {
       // Primero verificamos si tiene citas asociadas
       const citasResult = await query('SELECT COUNT(*) FROM citas WHERE medico_id = $1', [id]);
+      
+      if (!citasResult) {
+        throw new AppError('Error al verificar citas asociadas', 500);
+      }
+      
       if (parseInt(citasResult.rows[0].count) > 0) {
         throw new AppError('No se puede eliminar un médico que tiene citas asociadas', 400);
       }
       
       const result = await query('DELETE FROM medicos WHERE id = $1 RETURNING id', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Médico no encontrado', 404);
       }
       
@@ -169,6 +174,10 @@ class MedicoRepository {
          ORDER BY u.nombre ASC`,
         [especialidad]
       );
+      
+      if (!result) {
+        return [];
+      }
       
       return result.rows;
     } catch (error: any) {
@@ -222,9 +231,13 @@ class MedicoRepository {
         values.slice(0, values.length - 2) // Excluir limit y offset
       );
       
+      if (!result || !countResult) {
+        return { medicos: [], total: 0 };
+      }
+      
       return {
         medicos: result.rows,
-        total: parseInt(countResult.rows[0].count)
+        total: parseInt(countResult.rows[0].count || '0')
       };
     } catch (error: any) {
       logger.error('Error al filtrar médicos', { error: error.message });
@@ -240,6 +253,10 @@ class MedicoRepository {
       const result = await query(
         `SELECT DISTINCT especialidad FROM medicos ORDER BY especialidad ASC`
       );
+      
+      if (!result) {
+        return [];
+      }
       
       return result.rows.map(row => row.especialidad);
     } catch (error: any) {

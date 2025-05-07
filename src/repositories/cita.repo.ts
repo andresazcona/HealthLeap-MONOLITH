@@ -25,6 +25,10 @@ class CitaRepository {
         [paciente_id, medico_id, fecha_hora]
       );
       
+      if (!result) {
+        throw new AppError('Error al crear la cita', 500);
+      }
+      
       return result.rows[0];
     } catch (error: any) {
       if (error instanceof AppError) throw error;
@@ -40,7 +44,7 @@ class CitaRepository {
     try {
       const result = await query('SELECT * FROM citas WHERE id = $1', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -71,7 +75,7 @@ class CitaRepository {
         [id]
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         return null;
       }
       
@@ -126,7 +130,7 @@ class CitaRepository {
         values
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Cita no encontrada', 404);
       }
       
@@ -148,7 +152,7 @@ class CitaRepository {
         [estado, id]
       );
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Cita no encontrada', 404);
       }
       
@@ -167,7 +171,7 @@ class CitaRepository {
     try {
       const result = await query('DELETE FROM citas WHERE id = $1 RETURNING id', [id]);
       
-      if (result.rows.length === 0) {
+      if (!result || result.rows.length === 0) {
         throw new AppError('Cita no encontrada', 404);
       }
       
@@ -209,9 +213,13 @@ class CitaRepository {
         [pacienteId]
       );
       
+      if (!result || !countResult) {
+        return { citas: [], total: 0 };
+      }
+      
       return {
         citas: result.rows,
-        total: parseInt(countResult.rows[0].count)
+        total: parseInt(countResult.rows[0].count || '0')
       };
     } catch (error: any) {
       logger.error('Error al buscar citas por ID de paciente', { error: error.message });
@@ -262,9 +270,13 @@ class CitaRepository {
         countValues
       );
       
+      if (!result || !countResult) {
+        return { citas: [], total: 0 };
+      }
+      
       return {
         citas: result.rows,
-        total: parseInt(countResult.rows[0].count)
+        total: parseInt(countResult.rows[0].count || '0')
       };
     } catch (error: any) {
       logger.error('Error al buscar citas por ID de médico', { error: error.message });
@@ -348,9 +360,13 @@ class CitaRepository {
         countValues
       );
       
+      if (!result || !countResult) {
+        return { citas: [], total: 0 };
+      }
+      
       return {
         citas: result.rows,
-        total: parseInt(countResult.rows[0].count)
+        total: parseInt(countResult.rows[0].count || '0')
       };
     } catch (error: any) {
       logger.error('Error al filtrar citas', { error: error.message });
@@ -370,7 +386,7 @@ class CitaRepository {
         [medicoId]
       );
       
-      if (medicoResult.rows.length === 0) {
+      if (!medicoResult || medicoResult.rows.length === 0) {
         throw new AppError('Médico no encontrado', 404);
       }
       
@@ -404,8 +420,12 @@ class CitaRepository {
       
       const result = await query(queryText, values);
       
+      if (!result) {
+        return false; // Si hay error al obtener el conteo, consideramos que no está disponible
+      }
+      
       // Si hay citas solapadas, no está disponible
-      const count = parseInt(result.rows[0].count);
+      const count = parseInt(result.rows[0].count || '0');
       return count === 0;
     } catch (error: any) {
       if (error instanceof AppError) throw error;
@@ -437,6 +457,10 @@ class CitaRepository {
          ORDER BY c.fecha_hora ASC`,
         [inicio, fin]
       );
+      
+      if (!result) {
+        return [];
+      }
       
       return result.rows;
     } catch (error: any) {
