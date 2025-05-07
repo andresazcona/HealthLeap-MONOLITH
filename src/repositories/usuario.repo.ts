@@ -2,6 +2,7 @@ import { Usuario, UsuarioInput, UsuarioUpdateInput, UsuarioOutput } from '../mod
 import { query } from '../config/database';
 import AppError from '../utils/AppError';
 import logger from '../utils/logger';
+import bcrypt from 'bcrypt';
 
 class UsuarioRepository {
   /**
@@ -17,6 +18,10 @@ class UsuarioRepository {
          RETURNING *`,
         [nombre, email, password_hash, rol]
       );
+      
+      if (!result) {
+        throw new AppError('Error al crear el usuario: resultado de consulta vacío', 500);
+      }
       
       return result.rows[0];
     } catch (error: any) {
@@ -34,6 +39,10 @@ class UsuarioRepository {
   async findById(id: string): Promise<Usuario | null> {
     try {
       const result = await query('SELECT * FROM usuarios WHERE id = $1', [id]);
+      
+      if (!result) {
+        return null;
+      }
       
       if (result.rows.length === 0) {
         return null;
@@ -53,6 +62,10 @@ class UsuarioRepository {
     try {
       const result = await query('SELECT * FROM usuarios WHERE email = $1', [email]);
       
+      if (!result) {
+        return null;
+      }
+      
       if (result.rows.length === 0) {
         return null;
       }
@@ -68,12 +81,24 @@ class UsuarioRepository {
    * Actualiza un usuario existente
    */
   async update(id: string, data: UsuarioUpdateInput): Promise<Usuario> {
+    // Crear una copia de los datos para no modificar el objeto original
+    const updateData: any = { ...data };
+    
+    // Si se proporciona una nueva contraseña, hashearla
+    if (updateData.password) {
+      const hashedPassword = await bcrypt.hash(updateData.password, 10);
+      
+      // Reemplazar el campo password por password_hash
+      delete updateData.password;
+      updateData.password_hash = hashedPassword;
+    }
+    
     const fields: string[] = [];
     const values: any[] = [];
     let count = 1;
     
     // Construir dinámicamente la consulta de actualización
-    Object.entries(data).forEach(([key, value]) => {
+    Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = $${count}`);
         values.push(value);
@@ -96,6 +121,10 @@ class UsuarioRepository {
         values
       );
       
+      if (!result) {
+        throw new AppError('Error al actualizar: resultado de consulta vacío', 500);
+      }
+      
       if (result.rows.length === 0) {
         throw new AppError('Usuario no encontrado', 404);
       }
@@ -114,6 +143,10 @@ class UsuarioRepository {
   async delete(id: string): Promise<boolean> {
     try {
       const result = await query('DELETE FROM usuarios WHERE id = $1 RETURNING id', [id]);
+      
+      if (!result) {
+        throw new AppError('Error al eliminar: resultado de consulta vacío', 500);
+      }
       
       if (result.rows.length === 0) {
         throw new AppError('Usuario no encontrado', 404);
@@ -147,11 +180,19 @@ class UsuarioRepository {
       
       const result = await query(query_text, values);
       
+      if (!result) {
+        throw new AppError('Error al buscar usuarios: resultado de consulta vacío', 500);
+      }
+      
       // Obtener el total para la paginación
       const countResult = await query(
         'SELECT COUNT(*) FROM usuarios' + (rol ? ' WHERE rol = $1' : ''),
         rol ? [rol] : []
       );
+      
+      if (!countResult) {
+        throw new AppError('Error al contar usuarios: resultado de consulta vacío', 500);
+      }
       
       return {
         usuarios: result.rows,
