@@ -15,7 +15,8 @@
     "test:e2e": "jest tests/integration/flujos",
     "test:coverage": "jest --coverage",
     "test:specific": "jest tests/services/auth.service.test.ts",
-    "test:detect-handles": "jest --detectOpenHandles"
+    "test:detect-handles": "jest --detectOpenHandles",
+    "api:test": "newman run ./tests/postman/HealthLeap-API-Tests.json --reporters cli,htmlextra --reporter-htmlextra-export ./reports/newman-report.html"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

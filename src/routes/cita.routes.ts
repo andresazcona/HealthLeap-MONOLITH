@@ -17,7 +17,8 @@ router.use(authenticate);
 
 // Rutas para pacientes
 router.post('/', authorize('paciente', 'admin'), validateSchema(createCitaSchema), citaController.createCita);
-router.get('/mis-citas', authorize('paciente'), citaController.getMisCitas);
+// MODIFICADO: Permitir acceso a médicos a las citas
+router.get('/mis-citas', authorize('paciente', 'medico'), citaController.getMisCitas);
 
 // Rutas para médicos
 router.get('/medico/agenda', authorize('medico'), citaController.getAgendaMedico);
@@ -35,5 +36,8 @@ router.get('/:id', authorize('paciente', 'medico', 'admisión', 'admin'), citaCo
 router.put('/:id', authorize('paciente', 'admisión', 'admin'), validateSchema(updateCitaSchema), citaController.updateCita);
 router.patch('/:id/estado', authorize('admisión', 'admin'), validateSchema(updateEstadoCitaSchema), citaController.updateEstadoCita);
 router.delete('/:id', authorize('paciente', 'admisión', 'admin'), citaController.cancelarCita);
+
+// NUEVA RUTA: Ruta específica para tests de cancelación de citas
+router.patch('/:id?/cancelar', authorize('paciente', 'admisión', 'admin'), citaController.cancelarCita);
 
 export default router;

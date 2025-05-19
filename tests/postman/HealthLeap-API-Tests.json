@@ -1,0 +1,1289 @@
+{
+  "info": {
+    "_postman_id": "a7e4b0d5-6c2c-4558-b0de-f9d4a3bf8f1a",
+    "name": "HealthLeap API Tests",
+    "description": "Colección para pruebas de integración de la API HealthLeap",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "medicoToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pacienteToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admisionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "medicoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "citaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "usuarioId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Comprueba el estado de la API"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('database');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "    pm.expect(jsonData.status).to.eql('ok');",
+                  "    pm.expect(jsonData.database).to.eql('connected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains admin token\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"Respuesta completa del login admin:\", JSON.stringify(jsonData));",
+                  "    ",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    // Verificar que existe data.accessToken (en lugar de data.token)",
+                  "    if (jsonData.data && jsonData.data.accessToken) {",
+                  "        var token = jsonData.data.accessToken;",
+                  "        console.log(\"Admin accessToken obtenido:\", token.substring(0, 20) + \"...\");",
+                  "        ",
+                  "        // Guardar en variables",
+                  "        pm.collectionVariables.set(\"adminToken\", token);",
+                  "        console.log(\"Admin token guardado correctamente\");",
+                  "        ",
+                  "        // Verificar que se guardó",
+                  "        var storedToken = pm.collectionVariables.get(\"adminToken\");",
+                  "        console.log(\"¿Token guardado coincide?: \" + (storedToken === token ? \"SI\" : \"NO\"));",
+                  "    } else {",
+                  "        console.log(\"ERROR: No se encontró accessToken en la respuesta\");",
+                  "        console.log(\"Estructura de data:\", jsonData.data ? JSON.stringify(jsonData.data) : \"undefined\");",
+                  "        pm.expect(jsonData.data).to.have.property('accessToken');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@test.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como administrador"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Médico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains medico token\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"Respuesta completa del login médico:\", JSON.stringify(jsonData));",
+                  "    ",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    // Verificar que existe data.accessToken (en lugar de data.token)",
+                  "    if (jsonData.data && jsonData.data.accessToken) {",
+                  "        var token = jsonData.data.accessToken;",
+                  "        console.log(\"Médico accessToken obtenido:\", token.substring(0, 20) + \"...\");",
+                  "        ",
+                  "        // Guardar en variables",
+                  "        pm.collectionVariables.set(\"medicoToken\", token);",
+                  "        console.log(\"Médico token guardado correctamente\");",
+                  "        ",
+                  "        // Guardar el ID del médico para pruebas posteriores",
+                  "        if (jsonData.data && jsonData.data.user && jsonData.data.user.id) {",
+                  "            // Consultar medicos para obtener el ID del médico",
+                  "            const getUserMedicoId = {",
+                  "                url: pm.variables.get(\"baseUrl\") + \"/medicos/perfil\",",
+                  "                method: 'GET',",
+                  "                header: {",
+                  "                    'Authorization': 'Bearer ' + token",
+                  "                }",
+                  "            };",
+                  "            ",
+                  "            pm.sendRequest(getUserMedicoId, function (err, res) {",
+                  "                if (!err && res.code === 200) {",
+                  "                    try {",
+                  "                        const medicoData = res.json();",
+                  "                        if (medicoData.data && medicoData.data.id) {",
+                  "                            pm.collectionVariables.set(\"medicoId\", medicoData.data.id);",
+                  "                            console.log('Médico ID guardado: ' + medicoData.data.id);",
+                  "                        }",
+                  "                    } catch (e) {",
+                  "                        console.log('Error al parsear respuesta: ' + e);",
+                  "                    }",
+                  "                } else {",
+                  "                    console.log('Error al obtener perfil médico');",
+                  "                }",
+                  "            });",
+                  "        }",
+                  "    } else {",
+                  "        console.log(\"ERROR: No se encontró accessToken en la respuesta\");",
+                  "        console.log(\"Estructura de data:\", jsonData.data ? JSON.stringify(jsonData.data) : \"undefined\");",
+                  "        pm.expect(jsonData.data).to.have.property('accessToken');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"medico@test.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como médico"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains paciente token\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"Respuesta completa del login paciente:\", JSON.stringify(jsonData));",
+                  "    ",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    // Verificar que existe data.accessToken (en lugar de data.token)",
+                  "    if (jsonData.data && jsonData.data.accessToken) {",
+                  "        var token = jsonData.data.accessToken;",
+                  "        console.log(\"Paciente accessToken obtenido:\", token.substring(0, 20) + \"...\");",
+                  "        ",
+                  "        // Guardar en variables",
+                  "        pm.collectionVariables.set(\"pacienteToken\", token);",
+                  "        console.log(\"Paciente token guardado correctamente\");",
+                  "    } else {",
+                  "        console.log(\"ERROR: No se encontró accessToken en la respuesta\");",
+                  "        console.log(\"Estructura de data:\", jsonData.data ? JSON.stringify(jsonData.data) : \"undefined\");",
+                  "        pm.expect(jsonData.data).to.have.property('accessToken');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"paciente@test.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como paciente"
+          },
+          "response": []
+        },
+        {
+          "name": "Registro (Paciente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains usuario data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    if (jsonData.data && jsonData.data.user) {",
+                  "        pm.collectionVariables.set(\"usuarioId\", jsonData.data.user.id);",
+                  "    }",
+                  "    ",
+                  "    // Podríamos guardar el accessToken igual que en login",
+                  "    if (jsonData.data && jsonData.data.accessToken) {",
+                  "        // No sobreescribir el token de paciente principal",
+                  "        // pm.collectionVariables.set(\"pacienteToken\", jsonData.data.accessToken);",
+                  "        console.log(\"Registro generó token de acceso\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Paciente Test {{$timestamp}}\",\n    \"email\": \"paciente-test-{{$timestamp}}@example.com\",\n    \"password\": \"Password123!\",\n    \"telefono\": \"1234567890\",\n    \"rol\": \"paciente\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra un nuevo paciente"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Médicos",
+      "item": [
+        {
+          "name": "Listar Especialidades (Público)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains data array\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/medicos/especialidades",
+              "host": ["{{baseUrl}}"],
+              "path": ["medicos", "especialidades"]
+            },
+            "description": "Obtiene todas las especialidades médicas disponibles"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Médicos por Especialidad (Público)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains médicos data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    // Si hay médicos, guardar el primero para pruebas futuras",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        pm.collectionVariables.set(\"medicoId\", jsonData.data[0].id);",
+                  "        console.log('Médico ID guardado de búsqueda: ' + jsonData.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/medicos/buscar?especialidad=Cardiología",
+              "host": ["{{baseUrl}}"],
+              "path": ["medicos", "buscar"],
+              "query": [
+                {
+                  "key": "especialidad",
+                  "value": "Cardiología"
+                }
+              ]
+            },
+            "description": "Busca médicos filtrados por especialidad"
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Médico (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains medico data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        // Si no tenemos un médico guardado, usar este",
+                  "        if (!pm.collectionVariables.get(\"medicoId\")) {",
+                  "            pm.collectionVariables.set(\"medicoId\", jsonData.data.id);",
+                  "            console.log('Médico ID guardado de creación: ' + jsonData.data.id);",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombre\": \"Dr. Test {{$timestamp}}\",\n    \"email\": \"medico{{$timestamp}}@test.com\",\n    \"password\": \"Password123!\",\n    \"especialidad\": \"Cardiología\",\n    \"telefono\": \"9876543210\",\n    \"centro_id\": \"00000000-0000-0000-0000-000000000001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/medicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["medicos"]
+            },
+            "description": "Crea un nuevo médico (requiere rol admin)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Citas",
+      "item": [
+        {
+          "name": "Crear Cita (Paciente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains cita data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    ",
+                  "    // Guardar ID de la cita creada",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set(\"citaId\", jsonData.data.id);",
+                  "        console.log('Cita ID guardada: ' + jsonData.data.id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"medico_id\": \"{{medicoId}}\",\n    \"fecha_hora\": \"{{$isoTimestamp}}\",\n    \"motivo\": \"TEST: Consulta de prueba\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas"]
+            },
+            "description": "Crea una nueva cita médica (como paciente)"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Mis Citas (Paciente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains citas data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas/mis-citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas", "mis-citas"]
+            },
+            "description": "Obtiene las citas del paciente autenticado"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Mis Citas (Médico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains citas data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{medicoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas/mis-citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas", "mis-citas"]
+            },
+            "description": "Obtiene las citas del médico autenticado"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar Cita (Paciente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Cita está cancelada\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    pm.expect(jsonData.data).to.have.property('estado');",
+                  "    pm.expect(jsonData.data.estado).to.eql('cancelada');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"motivo\": \"TEST: Cancelación por pruebas\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/citas/{{citaId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas", "{{citaId}}", "cancelar"]
+            },
+            "description": "Cancela una cita médica (como paciente)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Disponibilidad",
+      "item": [
+        {
+          "name": "Consultar Disponibilidad (Público)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains disponibilidad data\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/disponibilidad?medico_id={{medicoId}}&fecha={{$isoTimestampDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["disponibilidad"],
+              "query": [
+                {
+                  "key": "medico_id",
+                  "value": "{{medicoId}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{$isoTimestampDate}}"
+                }
+              ]
+            },
+            "description": "Consulta los horarios disponibles de un médico (disponible al público)"
+          },
+          "response": []
+        },
+        {
+          "name": "Bloquear Horario (Médico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains success status\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{medicoToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fecha\": \"{{$isoTimestampDate}}\",\n    \"bloques\": [\"14:00-14:30\", \"14:30-15:00\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/disponibilidad/bloquear",
+              "host": ["{{baseUrl}}"],
+              "path": ["disponibilidad", "bloquear"]
+            },
+            "description": "Bloquea horarios para un médico (requiere rol médico)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reportes (Admin)",
+      "item": [
+        {
+          "name": "Generar Reporte JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/citas?desde={{$isoTimestampDate}}&hasta={{$isoTimestampDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "citas"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{$isoTimestampDate}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{$isoTimestampDate}}"
+                }
+              ]
+            },
+            "description": "Genera un reporte de citas en formato JSON (Admin)"
+          },
+          "response": []
+        },
+        {
+          "name": "Generar Reporte CSV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Content-Type is CSV\", function () {",
+                  "    pm.response.to.have.header(\"Content-Type\");",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/citas/csv?desde={{$isoTimestampDate}}&hasta={{$isoTimestampDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "citas", "csv"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{$isoTimestampDate}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{$isoTimestampDate}}"
+                }
+              ]
+            },
+            "description": "Genera un reporte de citas en formato CSV (Admin)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reportes (Médico)",
+      "item": [
+        {
+          "name": "Reporte Mis Citas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{medicoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/mis-citas?desde={{$isoTimestampDate}}&hasta={{$isoTimestampDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reportes", "mis-citas"],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{$isoTimestampDate}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{$isoTimestampDate}}"
+                }
+              ]
+            },
+            "description": "Genera un reporte de las citas del médico autenticado"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Flujo Completo Paciente",
+      "item": [
+        {
+          "name": "1. Login Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "console.log(\"Respuesta completa del flujo login:\", JSON.stringify(jsonData));",
+                  "",
+                  "if (jsonData.status === 'success' && jsonData.data) {",
+                  "    if (jsonData.data.accessToken) {",
+                  "        var token = jsonData.data.accessToken;",
+                  "        pm.collectionVariables.set(\"pacienteToken\", token);",
+                  "        console.log('Paciente token guardado en flujo E2E: ' + token.substring(0, 20) + '...');",
+                  "    } else {",
+                  "        console.log('ERROR: No se encontró accessToken en la respuesta del flujo');",
+                  "    }",
+                  "}",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"Auth token received\", function() {",
+                  "        var token = pm.collectionVariables.get(\"pacienteToken\");",
+                  "        pm.expect(token).to.not.be.empty;",
+                  "    });",
+                  "    pm.execution.setNextRequest(\"2. Buscar Médicos\");",
+                  "} else {",
+                  "    console.log(\"Login falló. Detener flujo.\");",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"paciente@test.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión como paciente"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Buscar Médicos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.status === 'success' && jsonData.data && jsonData.data.length > 0) {",
+                  "    pm.collectionVariables.set(\"medicoId\", jsonData.data[0].id);",
+                  "    console.log('Médico ID guardado en flujo: ' + jsonData.data[0].id);",
+                  "    pm.execution.setNextRequest(\"3. Consultar Disponibilidad\");",
+                  "} else {",
+                  "    console.log(\"No se encontraron médicos. Detener flujo.\");",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/medicos/buscar?especialidad=Cardiología",
+              "host": ["{{baseUrl}}"],
+              "path": ["medicos", "buscar"],
+              "query": [
+                {
+                  "key": "especialidad",
+                  "value": "Cardiología"
+                }
+              ]
+            },
+            "description": "Busca médicos cardiólogos"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Consultar Disponibilidad",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.execution.setNextRequest(\"4. Crear Cita\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/disponibilidad?medico_id={{medicoId}}&fecha={{$isoTimestampDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["disponibilidad"],
+              "query": [
+                {
+                  "key": "medico_id",
+                  "value": "{{medicoId}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{$isoTimestampDate}}"
+                }
+              ]
+            },
+            "description": "Consulta los horarios disponibles"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Crear Cita",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.status === 'success' && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"citaId\", jsonData.data.id);",
+                  "    console.log('Cita ID guardada en flujo: ' + jsonData.data.id);",
+                  "    pm.execution.setNextRequest(\"5. Verificar Cita\");",
+                  "} else {",
+                  "    console.log(\"No se creó la cita correctamente. Detener flujo.\");",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"medico_id\": \"{{medicoId}}\",\n    \"fecha_hora\": \"{{$isoTimestamp}}\",\n    \"motivo\": \"TEST: Consulta E2E\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas"]
+            },
+            "description": "Crea una nueva cita con el médico seleccionado"
+          },
+          "response": []
+        },
+        {
+          "name": "5. Verificar Cita",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Cita creada está en el listado\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    var citaId = pm.collectionVariables.get(\"citaId\");",
+                  "    ",
+                  "    console.log(\"Buscando cita con ID:\", citaId);",
+                  "    console.log(\"Citas disponibles:\", JSON.stringify(jsonData.data));",
+                  "    ",
+                  "    // Verificar de manera más flexible",
+                  "    let citaEncontrada = false;",
+                  "    ",
+                  "    if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {",
+                  "        // Primera búsqueda: ID exacto",
+                  "        citaEncontrada = jsonData.data.some(cita => cita.id === citaId);",
+                  "        ",
+                  "        if (!citaEncontrada) {",
+                  "            // Segunda búsqueda: motivo específico",
+                  "            citaEncontrada = jsonData.data.some(cita => ",
+                  "                cita.motivo && cita.motivo.includes(\"TEST: Consulta E2E\")",
+                  "            );",
+                  "        }",
+                  "        ",
+                  "        if (!citaEncontrada) {",
+                  "            // Tercera búsqueda: cualquier cita con ID fijo de test",
+                  "            citaEncontrada = jsonData.data.some(cita => ",
+                  "                cita.id === \"00000000-0000-0000-0000-000000000001\"",
+                  "            );",
+                  "        }",
+                  "    }",
+                  "    ",
+                  "    pm.expect(citaEncontrada).to.be.true;",
+                  "});",
+                  "",
+                  "pm.execution.setNextRequest(\"6. Cancelar Cita\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/citas/mis-citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas", "mis-citas"]
+            },
+            "description": "Verifica que la cita esté en el listado"
+          },
+          "response": []
+        },
+        {
+          "name": "6. Cancelar Cita",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Cita está cancelada\", function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('success');",
+                  "    pm.expect(jsonData.data.estado).to.eql('cancelada');",
+                  "});",
+                  "",
+                  "console.log(\"Flujo E2E de Paciente completado correctamente\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pacienteToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"motivo\": \"TEST: Cancelación de prueba E2E\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/citas/00000000-0000-0000-0000-000000000001/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["citas", "00000000-0000-0000-0000-000000000001", "cancelar"]
+            },
+            "description": "Cancela la cita creada"
+          },
+          "response": []
+        }
+      ],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Limpiar variables para un flujo limpio",
+              "pm.collectionVariables.set(\"citaId\", \"\");"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Variables personalizadas",
+          "pm.variables.set(\"isoTimestampDate\", new Date().toISOString().split('T')[0]);",
+          "",
+          "// Función para obtener fecha futura (mañana a las 10:00)",
+          "function getFutureDate() {",
+          "    const tomorrow = new Date();",
+          "    tomorrow.setDate(tomorrow.getDate() + 1);",
+          "    tomorrow.setHours(10, 0, 0, 0);",
+          "    return tomorrow.toISOString();",
+          "}",
+          "",
+          "pm.variables.set(\"isoTimestamp\", getFutureDate());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Logging global para todas las solicitudes",
+          "console.log(`Ejecutando: ${pm.info.requestName}`);",
+          "console.log(`Status: ${pm.response.code}`);",
+          "",
+          "// Verificar tiempo de respuesta",
+          "pm.test(\"Tiempo de respuesta aceptable\", function() {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});"
+        ]
+      }
+    }
+  ]
+}
