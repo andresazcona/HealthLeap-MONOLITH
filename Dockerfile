@@ -9,7 +9,8 @@ RUN npm ci
 # Copiar código fuente y compilar
 COPY tsconfig.json ./
 COPY src ./src
-COPY tests ./tests  
+# Comentamos esta línea para evitar el error
+# COPY tests ./tests  
 RUN npm run build
 
 # Etapa de producción

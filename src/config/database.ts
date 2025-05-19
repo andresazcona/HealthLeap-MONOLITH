@@ -80,6 +80,10 @@ export const query = async (text: string, params?: any[], maxQueryRetries = 2) =
       await new Promise(resolve => setTimeout(resolve, 500 * queryRetries));
     }
   }
+  
+  // This line is to satisfy TypeScript - should never execute in practice
+  // as the loop will always either return or throw
+  return null;
 };
 
 export default pool;
