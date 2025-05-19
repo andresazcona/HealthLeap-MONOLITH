@@ -8,8 +8,14 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "lint": "eslint . --ext .ts",
-    "test": "node --test tests/",
-    "test:coverage": "c8 node --test tests/"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:unit": "jest tests/services tests/repositories",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/integration/flujos",
+    "test:coverage": "jest --coverage",
+    "test:specific": "jest tests/services/auth.service.test.ts",
+    "test:detect-handles": "jest --detectOpenHandles"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -50,5 +56,39 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/tests/"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": ["ts-jest", {
+        "isolatedModules": true
+      }]
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "testTimeout": 10000
   }
 }

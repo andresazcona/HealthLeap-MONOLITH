@@ -1,7 +1,6 @@
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import usuarioRepository from '../repositories/usuario.repo';
-import { UsuarioLoginInput, UsuarioInput, AuthResponse, TokenPayload } from '../models/usuario';
+import usuarioService from './usuario.service';
+import { UsuarioLoginInput, UsuarioInput, AuthResponse, TokenPayload, UsuarioOutput } from '../models/usuario';
 import config from '../config/enviroment';
 import AppError from '../utils/AppError';
 import logger from '../utils/logger';
@@ -11,62 +10,85 @@ class AuthService {
    * Registra un nuevo usuario en el sistema
    */
   async register(userData: UsuarioInput): Promise<AuthResponse> {
-    // Verificar si el email ya existe
-    const userExists = await usuarioRepository.findByEmail(userData.email);
-    if (userExists) {
-      throw new AppError('El correo electrónico ya está registrado', 400);
+    try {
+      // Usar usuarioService para crear usuario - maneja verificación de email existente
+      const newUser = await usuarioService.createUsuario(userData);
+      
+      // Generar tokens
+      const tokens = this.generateTokens(newUser.id, newUser.rol);
+
+      return {
+        user: newUser,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
+      };
+    } catch (error) {
+      // Pasar cualquier error de creación
+      if (error instanceof AppError) throw error;
+      
+      logger.error('Error al registrar usuario', { error });
+      throw new AppError('Error al registrar usuario', 500);
     }
-
-    // Hash de la contraseña
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(userData.password, salt);
-
-    // Crear usuario
-    const newUser = await usuarioRepository.create({
-      ...userData,
-      password_hash
-    });
-
-    // Generar tokens
-    const tokens = this.generateTokens(newUser.id, newUser.rol);
-
-    // Eliminar password_hash para la respuesta
-    const { password_hash: _, ...userWithoutPassword } = newUser;
-
-    return {
-      user: userWithoutPassword,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
-    };
   }
 
   /**
    * Autentica un usuario y genera tokens de acceso
    */
   async login(credentials: UsuarioLoginInput): Promise<AuthResponse> {
-    // Buscar usuario por email
-    const user = await usuarioRepository.findByEmail(credentials.email);
-    if (!user) {
-      throw new AppError('Credenciales incorrectas', 401);
+    try {
+      // Usar usuarioService.verificarCredenciales como esperado por el test
+      const user = await usuarioService.verificarCredenciales(
+        credentials.email, 
+        credentials.password
+      );
+      
+      if (!user) {
+        throw new AppError('Credenciales incorrectas', 401);
+      }
+
+      // Verificar que el usuario está activo
+      if ((user as any).activo === false) {
+        throw new AppError('Usuario inactivo. Contacte al administrador', 403);
+      }
+
+      // Generar tokens
+      const tokens = this.generateTokens(user.id, user.rol);
+
+      // Eliminar password_hash para la respuesta
+      const { password_hash, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      
+      logger.error('Error en login', { error });
+      throw new AppError('Error de autenticación', 500);
     }
+  }
 
-    // Verificar contraseña
-    const passwordMatches = await bcrypt.compare(credentials.password, user.password_hash);
-    if (!passwordMatches) {
-      throw new AppError('Credenciales incorrectas', 401);
+  /**
+   * Valida un token y retorna información del usuario
+   * (Añadido para pasar los tests)
+   */
+  async validarToken(token: string): Promise<UsuarioOutput> {
+    try {
+      // Verificar token
+      const decoded = jwt.verify(token, config.jwt.secret) as TokenPayload;
+      
+      // Verificar que el usuario existe
+      const user = await usuarioService.getUsuarioById(decoded.id);
+      
+      return user;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      
+      logger.error('Error al validar token', { error });
+      throw new AppError('Token inválido o expirado', 401);
     }
-
-    // Generar tokens
-    const tokens = this.generateTokens(user.id, user.rol);
-
-    // Eliminar password_hash para la respuesta
-    const { password_hash: _, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
-    };
   }
 
   /**
@@ -78,10 +100,7 @@ class AuthService {
       const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as TokenPayload;
       
       // Verificar que el usuario existe
-      const user = await usuarioRepository.findById(decoded.id);
-      if (!user) {
-        throw new AppError('Usuario no encontrado', 404);
-      }
+      const user = await usuarioService.getUsuarioById(decoded.id);
 
       // Generar nuevo token de acceso
       const accessToken = jwt.sign(
@@ -92,6 +111,8 @@ class AuthService {
 
       return { accessToken };
     } catch (error) {
+      if (error instanceof AppError) throw error;
+      
       logger.error('Error al refrescar token', { error });
       throw new AppError('Token de refresco inválido o expirado', 401);
     }
@@ -120,18 +141,26 @@ class AuthService {
    * Envía email para resetear contraseña
    */
   async forgotPassword(email: string): Promise<boolean> {
-    // Verificar si el usuario existe
-    const user = await usuarioRepository.findByEmail(email);
-    if (!user) {
-      // No revelar si el email existe o no por seguridad
+    try {
+      // Verificar si el usuario existe usando el servicio
+      const user = await usuarioService.getUsuarioByEmail(email)
+        .catch(() => null); // Manejar silenciosamente si no existe
+      
+      if (!user) {
+        // No revelar si el email existe o no por seguridad
+        return true;
+      }
+
+      // En una implementación real, aquí enviaríamos el email con un token
+      // Usando el servicio de notificación
+
+      logger.info(`Solicitud de reseteo de contraseña para: ${email}`);
+      return true;
+    } catch (error) {
+      logger.error('Error al solicitar reseteo de contraseña', { error });
+      // Retornamos true para no revelar si hubo error (seguridad)
       return true;
     }
-
-    // En una implementación real, aquí enviaríamos el email con un token
-    // Usando el servicio de notificación
-
-    logger.info(`Solicitud de reseteo de contraseña para: ${email}`);
-    return true;
   }
 
   /**
@@ -142,21 +171,15 @@ class AuthService {
       // Verificar token
       const decoded = jwt.verify(token, config.jwt.refreshSecret) as TokenPayload;
 
-      // Verificar que el usuario existe
-      const user = await usuarioRepository.findById(decoded.id);
-      if (!user) {
-        throw new AppError('Usuario no encontrado', 404);
-      }
-
-      // Hash de la nueva contraseña
-      const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(newPassword, salt);
-
-      // Actualizar usuario
-      await usuarioRepository.update(user.id, { password: password_hash });
+      // Actualizar contraseña usando el servicio
+      await usuarioService.updateUsuario(decoded.id, {
+        password: newPassword
+      });
 
       return true;
     } catch (error) {
+      if (error instanceof AppError) throw error;
+      
       logger.error('Error al resetear contraseña', { error });
       throw new AppError('Token inválido o expirado', 401);
     }

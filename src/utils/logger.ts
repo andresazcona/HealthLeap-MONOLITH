@@ -1,4 +1,4 @@
-import winston from 'winston';
+import winston, { transport, transports as winstonTransports } from 'winston';
 import config from '../config/enviroment';
 
 const levels = {
@@ -38,14 +38,28 @@ const format = winston.format.combine(
   ),
 );
 
-const transports = [
-  new winston.transports.Console(),
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-  }),
-  new winston.transports.File({ filename: 'logs/all.log' }),
+// Inicializar con transporte de consola que funciona en todos los entornos
+const transports: winston.transport[] = [
+  new winston.transports.Console()
 ];
+
+// Agregar transportes de archivo solo si NO estamos en ambiente de pruebas
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    // Añadir transportes de archivo solo en entornos no-test
+    transports.push(
+      new winston.transports.File({
+        filename: 'logs/error.log',
+        level: 'error',
+      }),
+      new winston.transports.File({ 
+        filename: 'logs/all.log' 
+      })
+    );
+  } catch (error) {
+    console.warn('Error setting up file logging, falling back to console only', error);
+  }
+}
 
 const logger = winston.createLogger({
   level: level(),

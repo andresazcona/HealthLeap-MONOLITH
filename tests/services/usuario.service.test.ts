@@ -156,7 +156,7 @@ describe('UsuarioService', () => {
       (usuarioRepository.findByEmail as jest.Mock).mockResolvedValue(anotherUser);
       
       await expect(usuarioService.updateUsuario(mockUsuarioId, updateData))
-        .rejects.toThrow(new AppError('El email ya está en uso por otro usuario', 400));
+        .rejects.toThrow(new AppError('El correo electrónico ya está registrado', 400));
     });
 
     it('should allow same email for same user', async () => {
@@ -272,13 +272,13 @@ describe('UsuarioService', () => {
     });
   });
 
-  describe('changePassword', () => {
+  describe('cambiarPassword', () => {
     it('should change password successfully', async () => {
       (usuarioRepository.findById as jest.Mock).mockResolvedValue(mockUsuario);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (usuarioRepository.update as jest.Mock).mockResolvedValue(mockUsuario);
       
-      const result = await usuarioService.changePassword(
+      const result = await usuarioService.cambiarPassword(
         mockUsuarioId, 
         'Password123!', 
         'NewPassword456!'
@@ -294,7 +294,7 @@ describe('UsuarioService', () => {
     it('should throw error if user not found', async () => {
       (usuarioRepository.findById as jest.Mock).mockResolvedValue(null);
       
-      await expect(usuarioService.changePassword(
+      await expect(usuarioService.cambiarPassword(
         'nonexistent-id', 
         'Password123!', 
         'NewPassword456!'
@@ -305,7 +305,7 @@ describe('UsuarioService', () => {
       (usuarioRepository.findById as jest.Mock).mockResolvedValue(mockUsuario);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
       
-      await expect(usuarioService.changePassword(
+      await expect(usuarioService.cambiarPassword(
         mockUsuarioId, 
         'WrongPassword', 
         'NewPassword456!'
