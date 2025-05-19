@@ -14,12 +14,22 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3000}/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
-  # Si necesitas Redis para almacenamiento de tokens o rate limiting
+  # Redis para almacenamiento de tokens o rate limiting
   redis:
     image: redis:6-alpine
     container_name: healthleap-redis
@@ -29,6 +39,14 @@ services:
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
 volumes:
   redis-data:
