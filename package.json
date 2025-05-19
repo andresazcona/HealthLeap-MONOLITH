@@ -16,7 +16,23 @@
     "test:coverage": "jest --coverage",
     "test:specific": "jest tests/services/auth.service.test.ts",
     "test:detect-handles": "jest --detectOpenHandles",
-    "api:test": "newman run ./tests/postman/HealthLeap-API-Tests.json --reporters cli,htmlextra --reporter-htmlextra-export ./reports/newman-report.html"
+    "api:test": "newman run ./tests/postman/HealthLeap-API-Tests.json --reporters cli,htmlextra --reporter-htmlextra-export ./reports/newman-report.html",
+    
+    "test:allure": "jest --testPathPattern=tests/ --reporters=jest-allure",
+    "test:report": "npm run test:unit -- --reporters=jest-allure && npm run test:integration -- --reporters=jest-allure || true",
+    "allure:report": "allure generate --clean allure-results -o allure-report",
+    "allure:serve": "allure serve allure-results",
+    "allure:clear": "rimraf allure-results allure-report",
+    
+    "docker:build": "docker build -t healthleap-monolith .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env healthleap-monolith",
+    "docker:compose": "docker compose up -d",
+    "docker:compose:build": "docker compose up -d --build",
+    "docker:compose:down": "docker compose down",
+    
+    "sonar:scan": "sonar-scanner",
+    "ci:test": "npm run test:unit && npm run test:integration && npm run api:test",
+    "ci:report": "npm run allure:report"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -47,9 +63,15 @@
     "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
+    "allure-commandline": "^2.34.0",
     "c8": "^9.1.0",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
+    "jest-allure": "^0.1.3",
+    "newman": "^6.0.0",
+    "newman-reporter-htmlextra": "^1.22.11",
+    "rimraf": "^5.0.5",
+    "sonarqube-scanner": "^3.3.0",
     "supertest": "^6.3.4",
     "ts-jest": "^29.3.2",
     "ts-node-dev": "^2.0.0",
@@ -65,9 +87,12 @@
       "<rootDir>/tests/"
     ],
     "transform": {
-      "^.+\\.tsx?$": ["ts-jest", {
-        "isolatedModules": true
-      }]
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "isolatedModules": true
+        }
+      ]
     },
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
     "moduleFileExtensions": [
