@@ -109,8 +109,10 @@ class ReporteController {
         results: citas.length,
         data: citas
       });
+      return;
     } catch (error) {
       next(error);
+      return;
     }
   }
   

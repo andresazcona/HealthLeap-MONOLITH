@@ -194,16 +194,16 @@ class MedicoController {
   /**
    * Obtiene todas las especialidades disponibles
    */
-  async getAllEspecialidades(req: Request, res: Response, next: NextFunction) {
+  async getAllEspecialidades(_req: Request, res: Response, next: NextFunction) {
     try {
       const especialidades = await medicoService.getAllEspecialidades();
       
-      res.status(200).json({
+      return res.status(200).json({
         status: 'success',
         data: especialidades
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
   
@@ -225,12 +225,12 @@ class MedicoController {
       // Obtener médico por ID de usuario
       const medico = await medicoService.getMedicoByUsuarioId(userId);
       
-      res.status(200).json({
+      return res.status(200).json({
         status: 'success',
         data: medico
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 }
