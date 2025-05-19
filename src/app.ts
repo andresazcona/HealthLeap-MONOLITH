@@ -16,6 +16,7 @@ import citaRoutes from './routes/cita.routes';
 import notificationRoutes from './routes/notification.routes';
 import disponibilidadRoutes from './routes/disponibilidad.routes';
 import reporteRoutes from './routes/reporte.routes';
+import healthRoutes from './routes/health.route';
 
 const app = express();
 const httpServer = createServer(app);
@@ -48,6 +49,7 @@ app.use('/api/citas', citaRoutes);
 app.use('/api/notify', notificationRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/health', healthRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
