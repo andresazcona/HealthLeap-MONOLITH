@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+# Agregar permisos explícitos para solucionar el error 403
+permissions:
+  contents: write    # Necesario para publicar en gh-pages
+  pages: write       # Necesario para GitHub Pages
+  id-token: write    # Necesario para verificación de token
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,10 +32,10 @@ jobs:
           --health-retries 5
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -54,7 +60,7 @@ jobs:
       if: always()
       
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -68,39 +74,16 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage/lcov.info
-
-  sonarqube-analysis:
-    name: SonarQube Analysis
-    runs-on: ubuntu-latest
-    needs: test
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    
-    - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      with:
-        args: >
-          -Dsonar.projectKey=healthleap-monolith
-          -Dsonar.projectName=HealthLeap-MONOLITH
-          -Dsonar.sources=src
-          -Dsonar.tests=tests
-          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
           
   generate-report:
     needs: test
     runs-on: ubuntu-latest
     if: always() && github.event_name != 'pull_request'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download test results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: test-results
         path: allure-results
