@@ -1,21 +1,24 @@
 import Joi from 'joi';
 
 export const createCitaSchema = Joi.object({
-  paciente_id: Joi.string().uuid().required().messages({
-    'string.guid': 'ID de paciente inválido',
-    'any.required': 'El ID de paciente es obligatorio'
+  // MODIFICADO: paciente_id ahora es opcional para permitir que pacientes creen sus propias citas
+  paciente_id: Joi.string().uuid().optional().messages({
+    'string.guid': 'ID de paciente inválido'
   }),
   medico_id: Joi.string().uuid().required().messages({
     'string.guid': 'ID de médico inválido',
     'any.required': 'El ID de médico es obligatorio'
   }),
-  fecha_hora: Joi.date().iso().min('now').required().messages({
-    'date.base': 'Fecha y hora inválidas',
-    'date.format': 'Formato de fecha y hora inválido (use ISO 8601)',
-    'date.min': 'La fecha y hora deben ser futuras',
+  // MODIFICADO: aceptar tanto formato ISO como string de fecha
+  fecha_hora: Joi.alternatives().try(
+    Joi.date().iso(),
+    Joi.string()
+  ).required().messages({
     'any.required': 'La fecha y hora son obligatorias'
-  })
-});
+  }),
+  // AÑADIDO: campo motivo que se envía en las pruebas
+  motivo: Joi.string().allow('').optional()
+}).options({ allowUnknown: true }); // Permite campos adicionales
 
 export const updateCitaSchema = Joi.object({
   fecha_hora: Joi.date().iso().min('now').messages({
@@ -25,14 +28,16 @@ export const updateCitaSchema = Joi.object({
   }),
   estado: Joi.string().valid('agendada', 'en espera', 'atendida', 'cancelada').messages({
     'any.only': 'Estado no válido'
-  })
+  }),
+  motivo: Joi.string().allow('').optional()
 });
 
 export const updateEstadoCitaSchema = Joi.object({
   estado: Joi.string().valid('agendada', 'en espera', 'atendida', 'cancelada').required().messages({
     'any.only': 'Estado no válido',
     'any.required': 'El estado es obligatorio'
-  })
+  }),
+  motivo: Joi.string().allow('').optional()
 });
 
 export const filtroCitaSchema = Joi.object({

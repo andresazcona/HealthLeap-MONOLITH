@@ -1,10 +1,12 @@
-import app from './app';
+import { httpServer } from './app';
 import config from './config/enviroment';
 import logger from './utils/logger';
 
 const PORT = config.port;
 
-const server = app.listen(PORT, () => {
+// MODIFICADO: Usar el httpServer de app.ts en lugar de app.listen
+// Esto asegura que Socket.IO funcione correctamente
+httpServer.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} in ${config.env} mode`);
 });
 
@@ -16,9 +18,9 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (err: Error) => {
   logger.error('Unhandled rejection', { error: err.message, stack: err.stack });
-  server.close(() => {
+  httpServer.close(() => {
     process.exit(1);
   });
 });
 
-export default server;
+export default httpServer;
