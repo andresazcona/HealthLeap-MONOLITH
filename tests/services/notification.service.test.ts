@@ -1,5 +1,5 @@
 import notificationService from '../../src/services/notification.service';
-import { sendEmail } from '../../src/config/email';
+import emailConfig from '../../src/config/email'; // Changed import
 import { EstadoCita } from '../../src/models/cita';
 import AppError from '../../src/utils/AppError';
 
@@ -25,13 +25,15 @@ describe('NotificationService', () => {
     duracion_cita: 30
   };
 
+  // Mock transporter
+  const mockSendMail = jest.fn().mockResolvedValue({ messageId: 'mock-message-id' });
+  const mockTransporter = { sendMail: mockSendMail };
+
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Setup default mock for sendEmail
-    (sendEmail as jest.Mock).mockResolvedValue({
-      messageId: 'mock-message-id'
-    });
+    // Setup default mock for email transporter
+    (emailConfig.getTransporter as jest.Mock).mockReturnValue(mockTransporter);
   });
 
   describe('sendEmail', () => {
@@ -44,17 +46,17 @@ describe('NotificationService', () => {
       
       const result = await notificationService.sendEmail(emailData);
       
-      expect(sendEmail).toHaveBeenCalledWith(
-        emailData.to,
-        emailData.subject,
-        emailData.body
-      );
+      expect(emailConfig.getTransporter).toHaveBeenCalled();
+      expect(mockSendMail).toHaveBeenCalledWith(expect.objectContaining({
+        to: emailData.to,
+        subject: emailData.subject,
+        html: emailData.body
+      }));
       expect(result).toBe('mock-message-id');
     });
 
     it('should throw an error if email sending fails', async () => {
-      const emailError = new Error('Email sending failed');
-      (sendEmail as jest.Mock).mockRejectedValue(emailError);
+      mockSendMail.mockRejectedValueOnce(new Error('Email sending failed'));
       
       const emailData = {
         to: 'test@example.com',
@@ -63,7 +65,7 @@ describe('NotificationService', () => {
       };
       
       await expect(notificationService.sendEmail(emailData))
-        .rejects.toThrow(new AppError('Error al enviar email', 500));
+        .rejects.toThrow(new AppError('Error al enviar el correo electrónico', 500));
     });
   });
 
@@ -97,7 +99,7 @@ describe('NotificationService', () => {
       jest.spyOn(notificationService, 'sendEmail').mockRejectedValue(new Error('Failed'));
       
       await expect(notificationService.enviarConfirmacionCita(mockCitaCompleta))
-        .rejects.toThrow(new AppError('Error al enviar confirmación de cita', 500));
+        .rejects.toThrow(new AppError('Error al enviar la confirmación de cita', 500));
     });
   });
 

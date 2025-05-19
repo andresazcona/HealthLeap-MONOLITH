@@ -13,12 +13,11 @@ class UsuarioService {
       // Verificar si el email ya existe
       const existingUser = await usuarioRepository.findByEmail(userData.email);
       if (existingUser) {
-        throw new AppError('El correo electrónico ya está registrado', 400);
+        throw new AppError('El email ya está registrado', 400);
       }
       
-      // Hash de la contraseña
-      const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(userData.password, salt);
+      // Hash de la contraseña - simplificado para consistencia con los tests
+      const password_hash = await bcrypt.hash(userData.password, 10);
       
       // Crear el usuario
       return await usuarioRepository.create({
@@ -28,7 +27,7 @@ class UsuarioService {
     } catch (error) {
       if (error instanceof AppError) throw error;
       logger.error('Error al crear usuario', { error });
-      throw new AppError('Error al crear el usuario', 500);
+      throw new AppError('Error al crear usuario', 500);
     }
   }
 
@@ -75,9 +74,9 @@ class UsuarioService {
   }
 
   /**
- * Actualiza un usuario existente
- */
-async updateUsuario(id: string, userData: UsuarioUpdateInput): Promise<UsuarioOutput> {
+   * Actualiza un usuario existente
+   */
+  async updateUsuario(id: string, userData: UsuarioUpdateInput): Promise<UsuarioOutput> {
     try {
       // Verificar si el usuario existe
       const existingUser = await usuarioRepository.findById(id);
@@ -91,9 +90,9 @@ async updateUsuario(id: string, userData: UsuarioUpdateInput): Promise<UsuarioOu
       
       // Si hay cambio de contraseña, hashearla
       if (userData.password) {
-        const salt = await bcrypt.genSalt(10);
-        updateData.password_hash = await bcrypt.hash(userData.password, salt);
-        delete updateData.password; // Ahora TypeScript no se quejará
+        // Usar directamente 10 como salt rounds para consistencia con los tests
+        updateData.password_hash = await bcrypt.hash(userData.password, 10);
+        delete updateData.password;
       }
       
       // Si hay cambio de email, verificar que no esté ya registrado
@@ -197,14 +196,13 @@ async updateUsuario(id: string, userData: UsuarioUpdateInput): Promise<UsuarioOu
       const passwordValid = await bcrypt.compare(oldPassword, usuario.password_hash);
       
       if (!passwordValid) {
-        throw new AppError('La contraseña actual es incorrecta', 400);
+        throw new AppError('Contraseña actual incorrecta', 400);
       }
       
-      // Hashear nueva contraseña
-      const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(newPassword, salt);
+      // Hashear nueva contraseña - simplificado para consistencia con los tests
+      const password_hash = await bcrypt.hash(newPassword, 10);
       
-      // Actualizar contraseña con type assertion
+      // Actualizar contraseña
       await usuarioRepository.update(id, { password_hash } as any);
       
       return true;

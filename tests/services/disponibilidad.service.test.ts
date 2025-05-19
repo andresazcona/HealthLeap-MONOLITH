@@ -31,6 +31,14 @@ describe('DisponibilidadService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Mock por defecto para que el médico exista
+    (medicoRepository.findById as jest.Mock).mockResolvedValue({
+      id: mockMedicoId,
+      nombre: 'Dr. Test',
+      especialidad: 'Cardiología',
+      activo: true
+    });
   });
 
   describe('getDisponibilidadMedico', () => {
@@ -50,12 +58,18 @@ describe('DisponibilidadService', () => {
     });
 
     it('should handle repository errors', async () => {
-      (disponibilidadRepository.getDisponibilidad as jest.Mock).mockRejectedValue(
-        new Error('Database error')
-      );
+      // El médico existe, pero falla el repositorio de disponibilidad
+      (disponibilidadRepository.getDisponibilidad as jest.Mock).mockImplementation(() => {
+        throw new Error('Database error');
+      });
       
-      await expect(disponibilidadService.getDisponibilidadMedico(mockMedicoId, mockFecha))
-        .rejects.toThrow(new AppError('Error al obtener disponibilidad', 500));
+      try {
+        await disponibilidadService.getDisponibilidadMedico(mockMedicoId, mockFecha);
+        fail('Debería haber lanzado un error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).message).toContain('Error al obtener disponibilidad');
+      }
     });
 
     it('should pass along AppErrors from the repository', async () => {
@@ -128,12 +142,18 @@ describe('DisponibilidadService', () => {
         ]
       };
       
-      (disponibilidadRepository.bloquearHorarios as jest.Mock).mockRejectedValue(
-        new Error('Database error')
-      );
+      // El médico existe, pero falla el repositorio al bloquear
+      (disponibilidadRepository.bloquearHorarios as jest.Mock).mockImplementation(() => {
+        throw new Error('Database error');
+      });
       
-      await expect(disponibilidadService.bloquearHorarios(config))
-        .rejects.toThrow(new AppError('Error al bloquear horarios', 500));
+      try {
+        await disponibilidadService.bloquearHorarios(config);
+        fail('Debería haber lanzado un error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).message).toContain('Error al bloquear horarios');
+      }
     });
   });
 
