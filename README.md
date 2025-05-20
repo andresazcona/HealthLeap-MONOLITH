@@ -114,6 +114,7 @@ npm run build
 
 # Iniciar la aplicación
 npm start
+<<<<<<< HEAD:README.MD
 ```
 
 ### Instalación con Docker
