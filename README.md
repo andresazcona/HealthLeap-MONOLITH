@@ -48,7 +48,7 @@ Este repositorio contiene el backend monolítico del sistema, desarrollado con N
 
 ## Arquitectura
 
-La aplicación sigue un patrón arquitectónico en capas:
+La aplicación sigue un patrón arquitectónico monolitico en capas:
 
 1. **Controladores**: Manejan las peticiones HTTP y respuestas
 2. **Servicios**: Implementan la lógica de negocio
