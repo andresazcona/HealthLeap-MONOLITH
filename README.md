@@ -355,9 +355,6 @@ npm run test:integration
 # Ejecutar pruebas end-to-end
 npm run test:e2e
 
-# Ejecutar con cobertura
-npm run test:coverage
-
 # Ejecutar pruebas de API con Newman
 npm run api:test
 ```
