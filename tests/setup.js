@@ -13,6 +13,7 @@ process.env.EMAIL_HOST = "smtp.example.com";
 process.env.EMAIL_PORT = "587";
 process.env.EMAIL_USER = "test@example.com";
 process.env.EMAIL_PASS = "testpassword";
+process.env.EMAIL_APP_PASSWORD = "testpassword";
 
 // Mock para fs.stat usado por winston en caso de que sea necesario
 const fs = require('fs');

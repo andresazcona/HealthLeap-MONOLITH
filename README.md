@@ -1,450 +1,233 @@
-# HealthLeap Monolith
+<div align="center">
 
-Backend monolítico para plataforma de agendamiento médico HealthLeap.
+# HealthLeap
 
-![HealthLeap](https://img.shields.io/badge/HealthLeap-Monolith-brightgreen)
-![Node.js](https://img.shields.io/badge/Node.js-v18-green)
-![Express](https://img.shields.io/badge/Express-v4.19-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-v5.4-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v13-orange)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue)
-![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-purple)
+**API REST para agendamiento médico: pacientes, médicos, admisión y citas en un solo backend.**
 
-## Índice
+[![CI](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/ci.yml/badge.svg)](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/ci.yml)
+[![CD](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/cd.yml/badge.svg)](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/cd.yml)
+![Tests](https://img.shields.io/badge/tests-146%20passing-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18-339933?logo=node.js&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-- Descripción
-- Características
-- Arquitectura
-- Tecnologías
-- Requisitos
-- Instalación
-- Estructura del Proyecto
-- Configuración de Entorno
-- Ejecución
-- API Endpoints
-- Tests
-- CI/CD
-- Despliegue con Docker
-- Contribuir
+[**Reporte de tests en vivo**](https://andresazcona.github.io/HealthLeap-MONOLITH/) · [Endpoints](#api) · [Correr local](#correr-local)
 
-## Descripción
+</div>
 
-HealthLeap es una plataforma completa para la gestión de citas médicas, agendamiento de consultas y manejo de pacientes. La aplicación conecta médicos, pacientes y personal administrativo en una plataforma unificada para optimizar el proceso de atención médica.
+---
 
-Este repositorio contiene el backend monolítico del sistema, desarrollado con Node.js, Express y TypeScript, usando PostgreSQL como base de datos.
+## Qué hace
 
-## Características
+HealthLeap conecta a pacientes, médicos y personal de admisión:
 
-- **Gestión de usuarios** con roles diferenciados (paciente, médico, admisión, admin)
-- **Autenticación y autorización** con JWT
-- **Gestión de citas médicas** (agendamiento, modificación, cancelación)
-- **Administración de disponibilidad** para médicos
-- **Panel de admisión** para recepción de pacientes
-- **Notificaciones en tiempo real** con Socket.io
-- **Generación de reportes** (CSV, JSON)
-- **Estadísticas** sobre agendamiento y atención
-- **API RESTful** completamente documentada
-- **Sistema de logs** para monitoreo y diagnóstico
+- **Pacientes** buscan médicos por especialidad, ven disponibilidad y agendan, modifican o cancelan citas.
+- **Médicos** configuran su agenda, bloquean horarios y marcan citas como atendidas.
+- **Admisión** ve la agenda del día y marca la llegada del paciente; el médico recibe el aviso en tiempo real por WebSocket.
+- **Administradores** gestionan usuarios y sacan reportes y estadísticas en JSON o CSV.
+
+Además envía por correo confirmaciones, recordatorios y avisos de cancelación.
 
 ## Arquitectura
 
-La aplicación sigue un patrón arquitectónico monolitico en capas:
+Monolito en capas. Cada request baja por el mismo camino y cada capa se prueba por separado.
 
-1. **Controladores**: Manejan las peticiones HTTP y respuestas
-2. **Servicios**: Implementan la lógica de negocio
-3. **Repositorios**: Gestionan el acceso a datos
-4. **Modelos**: Definen las estructuras de datos
-5. **Middlewares**: Procesamiento intermedio de peticiones
-6. **Utilidades**: Funciones auxiliares compartidas
+```mermaid
+flowchart LR
+    C[Cliente] -->|HTTP / JWT| M[Middlewares<br/>helmet · cors · rate limit<br/>auth · roles · Joi]
+    C <-->|Socket.io| RT[Realtime]
+    M --> CT[Controllers]
+    CT --> S[Services<br/>lógica de negocio]
+    S --> R[Repositories]
+    R --> DB[(PostgreSQL)]
+    S --> E[Nodemailer]
+    S --> RT
+```
 
-La comunicación entre componentes se realiza a través de interfaces bien definidas, lo que facilita el mantenimiento y las pruebas unitarias.
+| Capa | Carpeta | Responsabilidad |
+|---|---|---|
+| Rutas | `src/routes` | Define endpoints y aplica middlewares |
+| Middlewares | `src/middlewares` | Autenticación JWT, roles, validación, rate limit, errores |
+| Controllers | `src/controllers` | Traduce HTTP a llamadas de servicio |
+| Services | `src/services` | Reglas de negocio (choques de horario, estados de cita, etc.) |
+| Repositories | `src/repositories` | SQL parametrizado con `pg` |
+| Realtime | `src/realtime` | Salas por médico y notificaciones Socket.io |
 
-## Tecnologías
+## Stack
 
-### Core
-- **Node.js** (v18+)
-- **Express.js** (v4.19)
-- **TypeScript** (v5.4)
-- **PostgreSQL** (v13)
+| | |
+|---|---|
+| **Runtime** | Node.js 18, Express 4, TypeScript 5 |
+| **Datos** | PostgreSQL (Neon en la nube) |
+| **Seguridad** | JWT access + refresh, bcrypt, helmet, CORS, express-rate-limit, validación con Joi |
+| **Tiempo real** | Socket.io |
+| **Testing** | Jest, Supertest, Newman (Postman), reportes Allure |
+| **DevOps** | Docker multi-stage, GitHub Actions (CI + CD a Docker Hub), SonarQube |
 
-### Autenticación y Seguridad
-- **JWT** (jsonwebtoken)
-- **bcrypt** para hash de contraseñas
-- **helmet** para seguridad HTTP
-- **cors** para control de acceso
-- **express-rate-limit** para protección contra ataques
+## Calidad
 
-### Testing
-- **Jest** para pruebas unitarias
-- **Supertest** para pruebas de integración
-- **Newman** para pruebas de API
+- **146 tests** unitarios en 14 suites (servicios y repositorios), más pruebas de integración y una colección Postman que se corre con Newman.
+- La CI corre en cada push: lint, tests y publicación del [reporte Allure](https://andresazcona.github.io/HealthLeap-MONOLITH/) en GitHub Pages.
+- La CD construye la imagen Docker y la publica en Docker Hub en cada push a `main`.
 
-### Otros
-- **Socket.io** para comunicación en tiempo real
-- **Winston** para logs
-- **Joi** para validación de datos
-- **Nodemailer** para envío de correos
-- **Docker** para contenerización
+## Correr local
 
-## Requisitos
-
-- Node.js v16.0.0 o superior (recomendado v18+)
-- npm v8.0.0 o superior
-- PostgreSQL 13 o superior
-- Docker y Docker Compose (para desarrollo/despliegue con contenedores)
-
-## Instalación
-
-### Instalación Local
+Requisitos: Node.js 18+ y una base PostgreSQL (local o [Neon](https://neon.tech)).
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/HealthLeap-MONOLITH.git
+git clone https://github.com/andresazcona/HealthLeap-MONOLITH.git
 cd HealthLeap-MONOLITH
-
-# Instalar dependencias
 npm install
+cp .env.example .env   # completa DATABASE_URL, JWT_* y EMAIL_*
+npm run dev            # http://localhost:3000
+```
 
-# Crear archivo de variables de entorno
+Con Docker:
+
+```bash
 cp .env.example .env
-# Editar .env con las configuraciones adecuadas
-
-# Compilar el proyecto
-npm run build
-
-# Iniciar la aplicación
-npm start
-<<<<<<< HEAD:README.MD
+docker compose up -d --build
 ```
 
-### Instalación con Docker
+Verifica que esté arriba:
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/HealthLeap-MONOLITH.git
-cd HealthLeap-MONOLITH
-
-# Crear archivo de variables de entorno
-cp .env.example .env
-# Editar .env con las configuraciones adecuadas
-
-# Construir y ejecutar con Docker Compose
-npm run docker:compose:build
+curl http://localhost:3000/health
 ```
 
-## Estructura del Proyecto
-
-```
-HealthLeap-MONOLITH/
-├── .github/                  # Configuración de GitHub Actions
-│   └── workflows/            # Workflows de CI/CD
-├── dist/                     # Código compilado (generado)
-├── logs/                     # Logs de la aplicación
-├── reports/                  # Reportes de pruebas
-├── src/                      # Código fuente
-│   ├── config/               # Configuraciones
-│   ├── controllers/          # Controladores de API
-│   ├── middlewares/          # Middlewares de Express
-│   ├── models/               # Definiciones de tipos y modelos
-│   ├── realtime/             # Gestión de websockets
-│   ├── repositories/         # Acceso a datos
-│   ├── routes/               # Rutas de API
-│   ├── scripts/              # Scripts utilitarios
-│   ├── services/             # Lógica de negocio
-│   ├── utils/                # Funciones auxiliares
-│   ├── validators/           # Esquemas de validación
-│   ├── app.ts                # Configuración de Express
-│   └── server.ts             # Punto de entrada
-├── temp/                     # Archivos temporales
-├── tests/                    # Pruebas
-│   ├── integration/          # Pruebas de integración
-│   ├── repositories/         # Pruebas de repositorios
-│   ├── services/             # Pruebas de servicios
-│   ├── unit/                 # Pruebas unitarias
-│   └── setup.js              # Configuración de test
-├── .dockerignore             # Archivos ignorados por Docker
-├── .env                      # Variables de entorno (no versionado)
-├── .env.example              # Ejemplo de variables de entorno
-├── .eslintrc                 # Configuración de ESLint
-├── .gitignore                # Archivos ignorados por git
-├── Dockerfile                # Configuración de Docker
-├── docker-compose.yml        # Configuración de Docker Compose
-├── jest.config.js            # Configuración de Jest
-├── package.json              # Dependencias y scripts
-├── README.md                 # Este archivo
-├── sonar-project.properties  # Configuración de SonarQube
-└── tsconfig.json             # Configuración de TypeScript
-```
-
-## Configuración de Entorno
-
-Crea un archivo .env en la raíz del proyecto con las siguientes variables:
-
-```env
-# Servidor
-NODE_ENV=development
-PORT=3000
-API_URL=http://localhost:3000
-CORS_ORIGIN=*
-
-# Base de datos
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=healthleap
-DB_PASS=healthleap
-DB_NAME=healthleap_db
-
-# Autenticación
-JWT_SECRET=tu_secreto_jwt
-JWT_REFRESH_SECRET=tu_secreto_refresh
-JWT_ACCESS_EXPIRATION=15m
-JWT_REFRESH_EXPIRATION=7d
-
-# Email
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=587
-EMAIL_USER=usuario@example.com
-EMAIL_PASS=tu_contraseña
-EMAIL_FROM=noreply@example.com
-
-# Logs
-LOG_LEVEL=info
-
-# Redis (opcional)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-## Ejecución
-
-### Desarrollo
+### Tests
 
 ```bash
-# Iniciar en modo desarrollo (con hot-reload)
-npm run dev
-
-# Verificación de tipos
-npm run lint
+npm run test:unit         # unitarios
+npm run test:integration  # integración
+npm run test:coverage     # cobertura
+npm run api:test          # colección Postman con Newman
 ```
 
-### Producción
+## Variables de entorno
 
-```bash
-# Compilar el código
-npm run build
+Todas están en [`.env.example`](.env.example). Al arrancar se validan con Joi y la app no inicia si falta alguna obligatoria.
 
-# Iniciar la aplicación
-npm start
-```
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `DATABASE_URL` | sí | Cadena de conexión PostgreSQL |
+| `JWT_SECRET` / `JWT_REFRESH_SECRET` | sí | Secretos para firmar tokens |
+| `JWT_ACCESS_EXPIRATION` / `JWT_REFRESH_EXPIRATION` | no | Por defecto `2h` / `7d` |
+| `EMAIL_USER` / `EMAIL_APP_PASSWORD` | sí | Cuenta para envío de correos |
+| `EMAIL_SERVICE` / `EMAIL_FROM` | no | Por defecto `gmail` |
+| `PORT` | no | Por defecto `3000` |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | no | Por defecto 100 requests cada 15 min |
 
-### Docker
+## API
 
-```bash
-# Construir imagen
-npm run docker:build
+Todas las rutas van bajo `/api` y, salvo registro, login y health, requieren `Authorization: Bearer <token>`.
 
-# Ejecutar el contenedor
-npm run docker:run
-
-# Ejecutar con Docker Compose (incluye Redis)
-npm run docker:compose
-```
-
-## API Endpoints
-
-La API sigue principios REST y utiliza JWT para autenticación.
-
-### Autenticación
+<details>
+<summary><b>Autenticación</b> · <code>/api/auth</code></summary>
 
 | Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/api/auth/register` | Registro de nuevos usuarios |
-| POST | `/api/auth/login` | Iniciar sesión |
-| POST | `/api/auth/refresh` | Refrescar token de acceso |
-| POST | `/api/auth/logout` | Cerrar sesión |
-| POST | `/api/auth/forgot-password` | Solicitar recuperación de contraseña |
-| POST | `/api/auth/reset-password` | Restablecer contraseña |
+|---|---|---|
+| POST | `/register` | Registro de usuario |
+| POST | `/login` | Inicio de sesión, devuelve access y refresh token |
+| POST | `/refresh-token` | Renueva el access token |
+| POST | `/logout` | Cierra sesión |
+| POST | `/forgot-password` | Solicita recuperación de contraseña |
+| POST | `/reset-password` | Restablece la contraseña |
+</details>
 
-### Usuarios
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/usuarios` | Listar usuarios (Admin) |
-| GET | `/api/usuarios/:id` | Obtener usuario por ID (Admin) |
-| POST | `/api/usuarios` | Crear usuario (Admin) |
-| PUT | `/api/usuarios/:id` | Actualizar usuario (Admin) |
-| DELETE | `/api/usuarios/:id` | Eliminar usuario (Admin) |
-
-### Médicos
+<details>
+<summary><b>Médicos</b> · <code>/api/medicos</code></summary>
 
 | Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/medicos` | Listar médicos |
-| GET | `/api/medicos/especialidades` | Listar especialidades |
-| GET | `/api/medicos/buscar` | Buscar médicos por filtros |
-| GET | `/api/medicos/:id` | Obtener médico por ID |
-| GET | `/api/medicos/perfil` | Obtener perfil del médico actual |
-| POST | `/api/medicos` | Crear médico (Admin) |
-| PATCH | `/api/medicos/perfil` | Actualizar perfil de médico |
-| DELETE | `/api/medicos/:id` | Eliminar médico (Admin) |
+|---|---|---|
+| GET | `/` | Listar médicos |
+| GET | `/especialidades` | Listar especialidades |
+| GET | `/buscar` | Buscar por filtros |
+| GET | `/perfil` | Perfil del médico autenticado |
+| GET | `/:id` | Detalle de un médico |
+| POST | `/` | Crear médico (admin) |
+| POST | `/completo` | Crear usuario + médico en un paso (admin) |
+| PATCH | `/perfil` | Actualizar perfil propio |
+| PATCH | `/:id` | Actualizar médico (admin) |
+| DELETE | `/:id` | Eliminar médico (admin) |
+</details>
 
-### Citas
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/citas` | Listar todas las citas (Admin) |
-| GET | `/api/citas/mis-citas` | Listar citas del usuario actual |
-| GET | `/api/citas/:id` | Obtener cita por ID |
-| GET | `/api/citas/filtrar` | Filtrar citas por criterios |
-| GET | `/api/citas/medico/agenda` | Ver agenda del médico |
-| POST | `/api/citas` | Crear nueva cita |
-| PATCH | `/api/citas/:id` | Actualizar cita |
-| PATCH | `/api/citas/:id/estado` | Cambiar estado de la cita |
-| PATCH | `/api/citas/:id/atendida` | Marcar cita como atendida (Médico) |
-| DELETE | `/api/citas/:id` | Cancelar cita |
-
-### Disponibilidad
+<details>
+<summary><b>Citas</b> · <code>/api/citas</code></summary>
 
 | Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/disponibilidad/medico/:medicoId/fecha/:fecha` | Consultar disponibilidad |
-| POST | `/api/disponibilidad` | Configurar disponibilidad (Médico) |
-| POST | `/api/disponibilidad/bloquear` | Bloquear horarios (Médico) |
-| DELETE | `/api/disponibilidad/medico/:medicoId/fecha/:fecha` | Cerrar agenda (Médico) |
+|---|---|---|
+| GET | `/` | Todas las citas (admin) |
+| GET | `/mis-citas` | Citas del usuario autenticado |
+| GET | `/filtrar` | Filtrar por criterios |
+| GET | `/medico/agenda` | Agenda del médico |
+| GET | `/agenda-diaria` | Agenda del día (admisión) |
+| GET | `/:id` | Detalle de una cita |
+| POST | `/` | Agendar cita |
+| PUT | `/:id` | Modificar cita |
+| PATCH | `/:id/estado` | Cambiar estado |
+| PATCH | `/:id/en-espera` | Marcar llegada del paciente (admisión) |
+| PATCH | `/:id/atendida` | Marcar como atendida (médico) |
+| PATCH | `/:id/cancelar` | Cancelar cita |
+| DELETE | `/:id` | Eliminar cita |
+</details>
 
-### Reportes
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/reportes/citas` | Generar reporte de citas (JSON) |
-| GET | `/api/reportes/citas/csv` | Generar reporte de citas (CSV) |
-| GET | `/api/reportes/estadisticas` | Generar estadísticas |
-| GET | `/api/reportes/mis-citas` | Reporte de citas del médico actual |
-
-### Admisión
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/admision/agenda-diaria` | Ver agenda del día |
-| GET | `/api/admision` | Listar personal de admisión |
-| POST | `/api/admision` | Crear personal de admisión |
-| PATCH | `/api/citas/:id/en-espera` | Marcar llegada de paciente |
-
-### Monitoreo
+<details>
+<summary><b>Disponibilidad</b> · <code>/api/disponibilidad</code></summary>
 
 | Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/health` | Verificar estado del servicio |
+|---|---|---|
+| GET | `/` | Disponibilidad del médico autenticado |
+| GET | `/medico/:medicoId/fecha/:fecha` | Consultar horarios libres |
+| GET | `/agenda-completa/:fecha` | Agenda completa del día |
+| POST | `/bloquear` | Bloquear horarios (médico) |
+| DELETE | `/medico/:medicoId/fecha/:fecha` | Cerrar agenda del día (médico) |
+</details>
 
-## Tests
+<details>
+<summary><b>Admisión, usuarios, reportes y notificaciones</b></summary>
 
-El proyecto incluye pruebas unitarias, de integración y end-to-end.
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET / POST / PUT / DELETE | `/api/admision[/:id]` | CRUD de personal de admisión |
+| GET | `/api/admision/perfil` | Perfil propio |
+| GET | `/api/admision/areas` | Áreas de admisión |
+| GET / PATCH | `/api/usuarios/me` | Perfil del usuario autenticado |
+| GET / POST / PUT / DELETE | `/api/usuarios[/:id]` | CRUD de usuarios (admin) |
+| GET | `/api/reportes/citas` | Reporte de citas (JSON) |
+| GET | `/api/reportes/citas/csv` | Reporte de citas (CSV) |
+| GET | `/api/reportes/resumen` | Resumen y estadísticas |
+| GET | `/api/reportes/mis-citas` | Reporte del médico autenticado |
+| POST | `/api/notify/cita-confirmacion/:citaId` | Correo de confirmación |
+| POST | `/api/notify/cita-recordatorio/:citaId` | Correo de recordatorio |
+| POST | `/api/notify/recordatorios-masivos` | Recordatorios masivos |
+| GET | `/api/health` | Estado del servicio |
+</details>
 
-### Ejecución de Tests
+## Estructura
 
-```bash
-# Ejecutar todas las pruebas
-npm test
-
-# Ejecutar pruebas unitarias
-npm run test:unit
-
-# Ejecutar pruebas de integración
-npm run test:integration
-
-# Ejecutar pruebas end-to-end
-npm run test:e2e
-
-# Ejecutar pruebas de API con Newman
-npm run api:test
+```
+src/
+├── config/         # entorno (validado con Joi), base de datos, email
+├── controllers/
+├── middlewares/    # authenticate, authorize, validateSchema, rateLimiter, errorHandler
+├── models/
+├── realtime/       # Socket.io
+├── repositories/
+├── routes/
+├── services/
+├── utils/
+├── validators/
+├── app.ts
+└── server.ts
+tests/
+├── services/  repositories/  integration/
+└── postman/        # colección Newman
 ```
 
-### Reportes de Pruebas
+---
 
-Las pruebas generan reportes detallados disponibles en la carpeta reports.
-
-También se puede generar un informe Allure:
-
-```bash
-# Generar reporte Allure
-npm run test:allure
-npm run allure:report
-
-# Visualizar reporte Allure
-npm run allure:serve
-```
-
-## CI/CD
-
-El proyecto utiliza GitHub Actions para integración y entrega continuas.
-
-### Flujo de CI
-
-El pipeline de CI se ejecuta automáticamente en cada push o pull request:
-
-1. **Instalación de dependencias**
-2. **Lint**: Verifica estilo de código
-3. **Tests unitarios**: Valida componentes individuales
-4. **Tests de integración**: Valida interacción entre componentes
-5. **Tests API**: Valida endpoints con Newman
-6. **Generación de reportes**: Crea informes de pruebas
-
-### Flujo de CD
-
-El pipeline de CD se ejecuta automáticamente en cada push a `main` o creación de tags:
-
-1. **Build de Docker**: Construye la imagen de contenedor
-2. **Publicación en DockerHub**: Publica la imagen con diferentes tags
-
-### Configuración
-
-Los workflows están definidos en los archivos:
-
-- ci.yml
-- cd.yml
-
-Para configurar el CD, es necesario agregar los siguientes secrets en GitHub:
-
-- `DOCKERHUB_USERNAME`: Nombre de usuario de DockerHub
-- `DOCKERHUB_TOKEN`: Token de acceso de DockerHub
-
-## Despliegue con Docker
-
-### Imagen Docker
-
-```bash
-# Construir imagen localmente
-docker build -t healthleap-monolith .
-
-# Ejecutar contenedor
-docker run -p 3000:3000 --env-file .env healthleap-monolith
-```
-
-### Docker Compose
-
-El archivo docker-compose.yml incluye la aplicación y una instancia de Redis:
-
-```bash
-# Iniciar todos los servicios
-docker compose up -d
-
-# Detener servicios
-docker compose down
-
-# Ver logs
-docker compose logs -f app
-```
-
-### Uso de la imagen de DockerHub
-
-```bash
-# Descargar la imagen
-docker pull usuario/healthleap-monolith:latest
-
-# Ejecutar
-docker run -p 3000:3000 -e DB_HOST=host.docker.internal -e DB_USER=usuario -e DB_PASS=password -e DB_NAME=healthleap usuario/healthleap-monolith:latest
-```
-
-
-
-Desarrollado con ❤️ por andresazcona
+<div align="center">
+Hecho por <a href="https://github.com/andresazcona">Andrés Azcona</a>
+</div>
