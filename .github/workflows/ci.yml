@@ -6,19 +6,16 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-# Agregar permisos explícitos para solucionar el error 403
 permissions:
-  contents: write    # Necesario para publicar en gh-pages
-  pages: write       # Necesario para GitHub Pages
-  id-token: write    # Necesario para verificación de token
+  contents: write    # publicar cobertura en gh-pages
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
-        image: postgres:13
+        image: postgres:16
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -30,32 +27,30 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
-    
-    - name: Run lint
-      run: npm run lint || echo "Linting skipped"
-      
-    - name: Run unit tests
-      run: npm run test:unit
-    
-    - name: Run integration tests
-      run: npm run test:integration
-      
-    - name: Build
+
+    - name: Unit tests (API)
+      run: npm run test:unit -w @healthleap/api
+
+    - name: Integration tests (API)
+      run: npm run test:integration -w @healthleap/api
+
+    - name: Build API + web
       run: npm run build
 
     - name: E2E against real Postgres
+      working-directory: apps/api
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/healthleap_test
         JWT_SECRET: ci_secret
@@ -68,8 +63,9 @@ jobs:
         node dist/server.js &
         npx --yes wait-on -t 30000 http://localhost:3000/health
         npm run test:e2e:api
-    
+
     - name: Coverage report
+      working-directory: apps/api
       run: npm run test:coverage -- --coverageReporters=html-spa --coverageReporters=text-summary
 
     - name: Publish coverage to GitHub Pages
@@ -77,5 +73,5 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./coverage
+        publish_dir: ./apps/api/coverage
         publish_branch: gh-pages

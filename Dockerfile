@@ -1,44 +1,27 @@
-FROM node:18-alpine AS builder
-
+# Imagen única: API (Express) + web (React) servida por la misma API.
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Instalar dependencias para compilación
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
 RUN npm ci
-
-# Copiar código fuente y compilar
-COPY tsconfig.json ./
-COPY src ./src
-# Comentamos esta línea para evitar el error
-# COPY tests ./tests  
+COPY apps ./apps
 RUN npm run build
 
-# Etapa de producción
-FROM node:18-alpine AS production
-
+FROM node:20-alpine
 WORKDIR /app
-
-# Copiar package.json y package-lock.json
-COPY package*.json ./
-
-# Instalar solo dependencias de producción
-RUN npm ci --production && npm cache clean --force
-
-# Crear directorio para logs
-RUN mkdir -p logs && chmod 777 logs
-
-# Copiar archivos compilados desde la etapa de construcción
-COPY --from=builder /app/dist ./dist
-
-# Añadir healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-# Usuario no root para seguridad
+ENV NODE_ENV=production WEB_DIST=/app/apps/web/dist PORT=3000
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --omit=dev -w @healthleap/api && npm cache clean --force
+COPY --from=build /app/apps/api/dist apps/api/dist
+COPY --from=build /app/apps/web/dist apps/web/dist
+COPY apps/api/db apps/api/db
+RUN mkdir -p apps/api/logs && chown -R node:node apps/api/logs
 USER node
-
-# Exponer puerto
 EXPOSE 3000
-
-# Comando para iniciar la aplicación
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3000/health || exit 1
+WORKDIR /app/apps/api
 CMD ["node", "dist/server.js"]

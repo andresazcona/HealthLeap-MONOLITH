@@ -1,3 +1,3 @@
-// Entrada para Vercel: la app Express compilada como función serverless.
-// Socket.io no corre aquí (Vercel no mantiene conexiones abiertas); el resto de la API sí.
-module.exports = require('../dist/app').default;
+// Entrada para Vercel: la API Express compilada (apps/api) como función serverless.
+// La web (apps/web/dist) se sirve como estática. Socket.io no corre en serverless; el resto sí.
+module.exports = require('../apps/api/dist/app').default;

@@ -1,108 +1,20 @@
 {
-  "name": "healthleap-backend",
+  "name": "healthleap",
+  "private": true,
   "version": "1.0.0",
-  "description": "Backend monolítico para plataforma de agendamiento médico HealthLeap",
-  "main": "dist/server.js",
+  "description": "HealthLeap: sistema de agendamiento médico (API + web)",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
-    "db:setup": "node db/setup.js",
-    "lint": "eslint . --ext .ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:unit": "jest tests/services tests/repositories",
-    "test:integration": "jest tests/integration",
-    "test:e2e": "jest tests/integration/flujos",
-    "test:coverage": "jest --coverage",
-    "test:specific": "jest tests/services/auth.service.test.ts",
-    "test:detect-handles": "jest --detectOpenHandles",
-    "docker:build": "docker build -t healthleap-monolith .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env healthleap-monolith",
-    "docker:compose": "docker compose up -d",
-    "docker:compose:build": "docker compose up -d --build",
-    "docker:compose:down": "docker compose down",
-    "sonar:scan": "sonar-scanner",
-    "test:e2e:api": "node tests/e2e/smoke.mjs",
-    "ci:test": "npm run test:unit && npm run test:integration"
-  },
-  "dependencies": {
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "csv-writer": "^1.6.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.2.0",
-    "helmet": "^7.1.0",
-    "joi": "^17.12.2",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^7.0.2",
-    "pg": "^8.11.3",
-    "socket.io": "^4.7.4",
-    "uuid": "^9.0.1",
-    "winston": "^3.12.0"
-  },
-  "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.14",
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.12.7",
-    "@types/nodemailer": "^6.4.17",
-    "@types/pg": "^8.11.2",
-    "@types/supertest": "^6.0.2",
-    "@types/uuid": "^9.0.8",
-    "@typescript-eslint/eslint-plugin": "^7.3.1",
-    "@typescript-eslint/parser": "^7.3.1",
-    "c8": "^9.1.0",
-    "eslint": "^8.57.0",
-    "jest": "^29.7.0",
-    "rimraf": "^5.0.5",
-    "sonarqube-scanner": "^3.3.0",
-    "supertest": "^6.3.4",
-    "ts-jest": "^29.3.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5"
+    "dev": "npm run dev -w @healthleap/api & npm run dev -w @healthleap/web",
+    "dev:api": "npm run dev -w @healthleap/api",
+    "dev:web": "npm run dev -w @healthleap/web",
+    "build": "npm run build -w @healthleap/api && npm run build -w @healthleap/web",
+    "test": "npm run test:unit -w @healthleap/api && npm run test:integration -w @healthleap/api",
+    "db:setup": "npm run db:setup -w @healthleap/api"
   },
   "engines": {
-    "node": ">=16.0.0"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "roots": [
-      "<rootDir>/tests/"
-    ],
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "isolatedModules": true
-        }
-      ]
-    },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.{ts,tsx}",
-      "!src/**/*.d.ts"
-    ],
-    "coverageDirectory": "coverage",
-    "setupFiles": [
-      "<rootDir>/tests/setup.js"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/dist/"
-    ],
-    "testTimeout": 10000
+    "node": ">=18"
   }
 }

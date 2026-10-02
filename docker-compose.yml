@@ -1,52 +1,43 @@
-version: '3.8'
-
+# Levanta todo con: docker compose up -d --build
+# Abre http://localhost:3000 (cuentas demo en el README, contraseña Demo1234!)
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: healthleap-api
+  db:
+    image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:${PORT:-3000}"
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: healthleap
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-healthleap}
+      POSTGRES_DB: healthleap
     volumes:
-      - ./logs:/app/logs
+      - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      - redis
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
+      test: ["CMD-SHELL", "pg_isready -U healthleap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # Redis para almacenamiento de tokens o rate limiting
-  redis:
-    image: redis:6-alpine
-    container_name: healthleap-redis
+  app:
+    build: .
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://healthleap:${DB_PASSWORD:-healthleap}@db:5432/healthleap
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Define JWT_REFRESH_SECRET en .env}
+      EMAIL_USER: ${EMAIL_USER:-no-reply@example.com}
+      EMAIL_APP_PASSWORD: ${EMAIL_APP_PASSWORD:-disabled}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      # Primer administrador (se crea solo si no existe)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # true carga cuentas de demo con contraseña pública Demo1234!: solo para probar, nunca en producción
+      SEED_DEMO: ${SEED_DEMO:-false}
+    # El esquema es idempotente: se aplica en cada arranque
+    command: sh -c "node db/setup.js && node dist/server.js"
 
 volumes:
-  redis-data:
+  db-data:

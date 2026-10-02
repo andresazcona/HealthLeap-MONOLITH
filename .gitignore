@@ -43,3 +43,6 @@ coverage/
 # Windows files
 Thumbs.db
 ehthumbs.db
+
+# Exportaciones de Stitch (referencia local; contienen textos de ejemplo no aptos para el producto)
+design/
