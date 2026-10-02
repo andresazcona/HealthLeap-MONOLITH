@@ -15,19 +15,6 @@ process.env.EMAIL_USER = "test@example.com";
 process.env.EMAIL_PASS = "testpassword";
 process.env.EMAIL_APP_PASSWORD = "testpassword";
 
-// Mock para fs.stat usado por winston en caso de que sea necesario
-const fs = require('fs');
-if (!fs.stat) {
-  fs.stat = (path, callback) => {
-    const stat = { isDirectory: () => true };
-    callback(null, stat);
-  };
-}
-
-// Mock de file system para evitar errores con winston
-fs.existsSync = jest.fn().mockReturnValue(true);
-fs.mkdirSync = jest.fn();
-
 // Si tienes un archivo .env.test opcional
 try {
   require('dotenv').config({ path: path.resolve(__dirname, '../.env.test') });

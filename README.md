@@ -12,7 +12,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-[**Reporte de tests en vivo**](https://andresazcona.github.io/HealthLeap-MONOLITH/) · [Endpoints](#api) · [Correr local](#correr-local)
+[**Reporte de cobertura**](https://andresazcona.github.io/HealthLeap-MONOLITH/) · [Endpoints](#api) · [Correr local](#correr-local)
 
 </div>
 
@@ -62,7 +62,7 @@ flowchart LR
 | **Datos** | PostgreSQL (Neon en la nube) |
 | **Seguridad** | JWT access + refresh, bcrypt, helmet, CORS, express-rate-limit, validación con Joi |
 | **Tiempo real** | Socket.io |
-| **Testing** | Jest, Supertest, Newman (Postman), reportes Allure |
+| **Testing** | Jest, Supertest, e2e con `fetch` contra Postgres real |
 | **DevOps** | Docker multi-stage, GitHub Actions (CI + CD a Docker Hub), SonarQube |
 
 ## Reglas de negocio
@@ -77,7 +77,7 @@ flowchart LR
 
 - **147 tests unitarios** (servicios y repositorios) y **32 de integración** (rutas con Supertest).
 - **E2E contra Postgres real** ([`tests/e2e/smoke.mjs`](tests/e2e/smoke.mjs)): recorre el flujo completo con los cuatro roles, incluidos los casos que deben fallar (horario ocupado, horario bloqueado, cita en el pasado, accesos indebidos).
-- La CI corre todo eso en cada push con un Postgres de servicio, y publica el [reporte Allure](https://andresazcona.github.io/HealthLeap-MONOLITH/) en GitHub Pages.
+- La CI corre todo eso en cada push con un Postgres de servicio y publica el [reporte de cobertura](https://andresazcona.github.io/HealthLeap-MONOLITH/) (~58%) en GitHub Pages.
 - La CD construye la imagen Docker y la publica en Docker Hub en cada push a `main`.
 
 ## Correr local
