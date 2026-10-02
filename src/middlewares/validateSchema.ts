@@ -2,9 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import AppError from '../utils/AppError';
 
-const validateSchema = (schema: Joi.ObjectSchema) => {
+type Source = 'body' | 'query' | 'params';
+
+const validateSchema = (schema: Joi.ObjectSchema, source: Source = 'body') => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req.body, {
+    const { error, value } = schema.validate(req[source], {
       abortEarly: false,
       stripUnknown: true,
     });
@@ -14,12 +16,12 @@ const validateSchema = (schema: Joi.ObjectSchema) => {
         path: detail.path.join('.'),
         message: detail.message
       }));
-      
+
       return next(new AppError('Error de validación', 400, true, errorDetails));
     }
 
-    // Reemplazar el body con los datos validados
-    req.body = value;
+    // Reemplazar con los datos validados (aplica defaults como page/limit)
+    req[source] = value;
     next();
   };
 };

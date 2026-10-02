@@ -17,7 +17,6 @@ router.use(authenticate);
 
 // Rutas para pacientes
 router.post('/', authorize('paciente', 'admin'), validateSchema(createCitaSchema), citaController.createCita);
-// MODIFICADO: Permitir acceso a médicos a las citas
 router.get('/mis-citas', authorize('paciente', 'medico'), citaController.getMisCitas);
 
 // Rutas para médicos
@@ -26,18 +25,16 @@ router.patch('/:id/atendida', authorize('medico'), citaController.marcarCitaAten
 
 // Rutas para admisión
 router.get('/agenda-diaria', authorize('admisión', 'admin'), citaController.getAgendaDiaria);
-router.patch('/:id/en-espera', authorize('admisión'), citaController.marcarPacienteLlegada);
+router.patch('/:id/en-espera', authorize('admisión', 'admin'), citaController.marcarPacienteLlegada);
 
 // Rutas para administradores
-router.get('/filtrar', authorize('admin', 'admisión'), validateSchema(filtroCitaSchema), citaController.filtrarCitas);
+router.get('/filtrar', authorize('admin', 'admisión'), validateSchema(filtroCitaSchema, 'query'), citaController.filtrarCitas);
 
 // Rutas compartidas (médicos, admisión, admin)
 router.get('/:id', authorize('paciente', 'medico', 'admisión', 'admin'), citaController.getCitaById);
 router.put('/:id', authorize('paciente', 'admisión', 'admin'), validateSchema(updateCitaSchema), citaController.updateCita);
 router.patch('/:id/estado', authorize('admisión', 'admin'), validateSchema(updateEstadoCitaSchema), citaController.updateEstadoCita);
 router.delete('/:id', authorize('paciente', 'admisión', 'admin'), citaController.cancelarCita);
-
-// NUEVA RUTA: Ruta específica para tests de cancelación de citas
-router.patch('/:id?/cancelar', authorize('paciente', 'admisión', 'admin'), citaController.cancelarCita);
+router.patch('/:id/cancelar', authorize('paciente', 'admisión', 'admin'), citaController.cancelarCita);
 
 export default router;

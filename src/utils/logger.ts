@@ -43,8 +43,8 @@ const transports: winston.transport[] = [
   new winston.transports.Console()
 ];
 
-// Agregar transportes de archivo solo si NO estamos en ambiente de pruebas
-if (process.env.NODE_ENV !== 'test') {
+// Logs en archivo solo con disco escribible (no en tests ni en Vercel)
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   try {
     // Añadir transportes de archivo solo en entornos no-test
     transports.push(

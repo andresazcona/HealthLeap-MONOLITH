@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/ci.yml/badge.svg)](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/ci.yml)
 [![CD](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/cd.yml/badge.svg)](https://github.com/andresazcona/HealthLeap-MONOLITH/actions/workflows/cd.yml)
-![Tests](https://img.shields.io/badge/tests-146%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-147%20unit%20%C2%B7%2032%20integration%20%C2%B7%2028%20e2e-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-18-339933?logo=node.js&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13-4169E1?logo=postgresql&logoColor=white)
@@ -65,10 +65,19 @@ flowchart LR
 | **Testing** | Jest, Supertest, Newman (Postman), reportes Allure |
 | **DevOps** | Docker multi-stage, GitHub Actions (CI + CD a Docker Hub), SonarQube |
 
+## Reglas de negocio
+
+- El registro público **siempre crea pacientes**; médicos, admisión y admins los crea un admin.
+- No se puede agendar en el pasado, sobre otra cita del mismo médico ni en un horario que el médico bloqueó.
+- Flujo de estados: `agendada` → `en espera` (admisión marca la llegada) → `atendida` (solo el médico de esa cita).
+- Un paciente solo ve, modifica y cancela sus propias citas.
+- Horario de atención: 8:00 a 17:00 hora Colombia. Todas las fechas se guardan en UTC (`TIMESTAMPTZ`).
+
 ## Calidad
 
-- **146 tests** unitarios en 14 suites (servicios y repositorios), más pruebas de integración y una colección Postman que se corre con Newman.
-- La CI corre en cada push: lint, tests y publicación del [reporte Allure](https://andresazcona.github.io/HealthLeap-MONOLITH/) en GitHub Pages.
+- **147 tests unitarios** (servicios y repositorios) y **32 de integración** (rutas con Supertest).
+- **E2E contra Postgres real** ([`tests/e2e/smoke.mjs`](tests/e2e/smoke.mjs)): recorre el flujo completo con los cuatro roles, incluidos los casos que deben fallar (horario ocupado, horario bloqueado, cita en el pasado, accesos indebidos).
+- La CI corre todo eso en cada push con un Postgres de servicio, y publica el [reporte Allure](https://andresazcona.github.io/HealthLeap-MONOLITH/) en GitHub Pages.
 - La CD construye la imagen Docker y la publica en Docker Hub en cada push a `main`.
 
 ## Correr local
@@ -80,14 +89,27 @@ git clone https://github.com/andresazcona/HealthLeap-MONOLITH.git
 cd HealthLeap-MONOLITH
 npm install
 cp .env.example .env   # completa DATABASE_URL, JWT_* y EMAIL_*
+npm run db:setup       # crea las tablas y carga los datos de demo
 npm run dev            # http://localhost:3000
 ```
+
+### Cuentas de demo
+
+Las crea `npm run db:setup`. Todas usan la contraseña `Demo1234!`.
+
+| Rol | Email |
+|---|---|
+| Admin | `admin@example.com` |
+| Admisión | `admision@example.com` |
+| Médico | `ana.ruiz@example.com`, `carlos.mendez@example.com`, `sofia.torres@example.com` |
+| Paciente | `paciente@example.com`, `maria.lopez@example.com` |
 
 Con Docker:
 
 ```bash
 cp .env.example .env
 docker compose up -d --build
+docker compose exec app npm run db:setup
 ```
 
 Verifica que esté arriba:
@@ -102,7 +124,7 @@ curl http://localhost:3000/health
 npm run test:unit         # unitarios
 npm run test:integration  # integración
 npm run test:coverage     # cobertura
-npm run api:test          # colección Postman con Newman
+npm run test:e2e:api      # e2e contra la API corriendo (API_URL, por defecto localhost:3000)
 ```
 
 ## Variables de entorno
@@ -141,12 +163,11 @@ Todas las rutas van bajo `/api` y, salvo registro, login y health, requieren `Au
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/` | Listar médicos |
+| GET | `/` | Listar médicos (admin) |
 | GET | `/especialidades` | Listar especialidades |
-| GET | `/buscar` | Buscar por filtros |
+| GET | `/buscar` | Buscar por especialidad o nombre (público) |
 | GET | `/perfil` | Perfil del médico autenticado |
-| GET | `/:id` | Detalle de un médico |
-| POST | `/` | Crear médico (admin) |
+| GET | `/:id` | Detalle de un médico (admin) |
 | POST | `/completo` | Crear usuario + médico en un paso (admin) |
 | PATCH | `/perfil` | Actualizar perfil propio |
 | PATCH | `/:id` | Actualizar médico (admin) |
@@ -167,10 +188,10 @@ Todas las rutas van bajo `/api` y, salvo registro, login y health, requieren `Au
 | POST | `/` | Agendar cita |
 | PUT | `/:id` | Modificar cita |
 | PATCH | `/:id/estado` | Cambiar estado |
-| PATCH | `/:id/en-espera` | Marcar llegada del paciente (admisión) |
+| PATCH | `/:id/en-espera` | Marcar llegada del paciente (admisión, admin) |
 | PATCH | `/:id/atendida` | Marcar como atendida (médico) |
 | PATCH | `/:id/cancelar` | Cancelar cita |
-| DELETE | `/:id` | Eliminar cita |
+| DELETE | `/:id` | Cancelar cita (equivalente) |
 </details>
 
 <details>
@@ -178,11 +199,10 @@ Todas las rutas van bajo `/api` y, salvo registro, login y health, requieren `Au
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/` | Disponibilidad del médico autenticado |
-| GET | `/medico/:medicoId/fecha/:fecha` | Consultar horarios libres |
-| GET | `/agenda-completa/:fecha` | Agenda completa del día |
-| POST | `/bloquear` | Bloquear horarios (médico) |
-| DELETE | `/medico/:medicoId/fecha/:fecha` | Cerrar agenda del día (médico) |
+| GET | `/medico/:medicoId/fecha/:fecha` | Horarios libres, citas y bloqueos del día (público) |
+| GET | `/agenda-completa/:fecha` | Agenda de todos los médicos (admin, admisión) |
+| POST | `/bloquear` | Bloquear horarios (médico, o admin con `medico_id`) |
+| DELETE | `/medico/:medicoId/fecha/:fecha` | Cerrar agenda del día (admin) |
 </details>
 
 <details>
@@ -195,7 +215,7 @@ Todas las rutas van bajo `/api` y, salvo registro, login y health, requieren `Au
 | GET | `/api/admision/areas` | Áreas de admisión |
 | GET / PATCH | `/api/usuarios/me` | Perfil del usuario autenticado |
 | GET / POST / PUT / DELETE | `/api/usuarios[/:id]` | CRUD de usuarios (admin) |
-| GET | `/api/reportes/citas` | Reporte de citas (JSON) |
+| GET | `/api/reportes/citas` | Reporte de citas (JSON). Filtros: `?desde=&hasta=&estado=&medico_id=` |
 | GET | `/api/reportes/citas/csv` | Reporte de citas (CSV) |
 | GET | `/api/reportes/resumen` | Resumen y estadísticas |
 | GET | `/api/reportes/mis-citas` | Reporte del médico autenticado |
@@ -221,9 +241,14 @@ src/
 ├── validators/
 ├── app.ts
 └── server.ts
+db/
+├── schema.sql      # tablas
+├── seed.sql        # datos de demo
+└── setup.js        # npm run db:setup
 tests/
 ├── services/  repositories/  integration/
-└── postman/        # colección Newman
+└── e2e/smoke.mjs   # flujo completo contra Postgres real
+api/index.js        # entrada para Vercel
 ```
 
 ---

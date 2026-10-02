@@ -5,9 +5,8 @@ import logger from '../utils/logger';
 // Configuración del pool de conexiones mejorada
 const pool = new Pool({
   connectionString: config.databaseUrl,
-  ssl: { 
-    rejectUnauthorized: false  // Siempre usar SSL con rejectUnauthorized: false para Neon
-  },
+  // SSL solo si la URL lo pide (Neon usa sslmode=require); Postgres local/Docker va sin SSL
+  ssl: config.databaseUrl.includes('sslmode=') ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,  // Aumentar el timeout a 5 segundos

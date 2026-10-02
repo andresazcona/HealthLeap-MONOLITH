@@ -73,6 +73,7 @@ export const updateMedicoSchema = Joi.object({
 
 export const filtroMedicoSchema = Joi.object({
   especialidad: Joi.string(),
+  nombre: Joi.string(),
   centro_id: Joi.string().uuid().messages({
     'string.guid': 'ID de centro inválido'
   }),

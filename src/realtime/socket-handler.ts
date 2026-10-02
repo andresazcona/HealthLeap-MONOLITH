@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import logger from '../utils/logger';
 import jwt from 'jsonwebtoken';
 import config from '../config/enviroment';
+import medicoRepository from '../repositories/medico.repo';
 
 interface UserSocket {
   userId: string;
@@ -60,14 +61,16 @@ export const setupSocketHandlers = (io: Server) => {
     });
     
     // Si es médico, registrarlo en la lista de médicos
+    // Las notificaciones de citas usan el id del médico, no el del usuario
     if (userRol === 'medico') {
-      if (!medicoSockets.has(userId)) {
-        medicoSockets.set(userId, []);
-      }
-      medicoSockets.get(userId)?.push(socket.id);
-      
-      // El médico se une a su sala personal
-      socket.join(`medico-${userId}`);
+      medicoRepository.findByUsuarioId(userId).then(medico => {
+        if (!medico) return;
+        if (!medicoSockets.has(medico.id)) {
+          medicoSockets.set(medico.id, []);
+        }
+        medicoSockets.get(medico.id)?.push(socket.id);
+        socket.join(`medico-${medico.id}`);
+      }).catch(err => logger.error('Error al asociar socket del médico', { error: err.message }));
     }
     
     // Evento para cuando un paciente llega (admisión marca llegada)
@@ -89,17 +92,9 @@ export const setupSocketHandlers = (io: Server) => {
       
       // Si era médico, eliminar de esa lista
       if (userRol === 'medico') {
-        const sockets = medicoSockets.get(userId) || [];
-        const index = sockets.indexOf(socket.id);
-        
-        if (index !== -1) {
-          sockets.splice(index, 1);
-        }
-        
-        if (sockets.length === 0) {
-          medicoSockets.delete(userId);
-        } else {
-          medicoSockets.set(userId, sockets);
+        for (const [medicoId, sockets] of medicoSockets) {
+          const restantes = sockets.filter(id => id !== socket.id);
+          restantes.length ? medicoSockets.set(medicoId, restantes) : medicoSockets.delete(medicoId);
         }
       }
     });

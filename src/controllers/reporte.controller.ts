@@ -3,6 +3,7 @@ import reporteService from '../services/reporte.service';
 import { FiltroReporte } from '../models/reporte';
 import path from 'path';
 import fs from 'fs';
+import { getMedicoIdDelUsuario } from '../utils/medico-del-usuario';
 
 class ReporteController {
   /**
@@ -14,7 +15,7 @@ class ReporteController {
         desde: req.query.desde ? new Date(req.query.desde as string) : undefined,
         hasta: req.query.hasta ? new Date(req.query.hasta as string) : undefined,
         estado: req.query.estado as string,
-        medico_id: req.query.medicoId as string
+        medico_id: req.query.medico_id as string
       };
       
       const citas = await reporteService.generarReporteCitas(filtro);
@@ -38,7 +39,7 @@ class ReporteController {
         desde: req.query.desde ? new Date(req.query.desde as string) : undefined,
         hasta: req.query.hasta ? new Date(req.query.hasta as string) : undefined,
         estado: req.query.estado as string,
-        medico_id: req.query.medicoId as string
+        medico_id: req.query.medico_id as string
       };
       
       const filePath = await reporteService.generarReporteCSV(filtro);
@@ -68,7 +69,7 @@ class ReporteController {
       const filtro: FiltroReporte = {
         desde: req.query.desde ? new Date(req.query.desde as string) : undefined,
         hasta: req.query.hasta ? new Date(req.query.hasta as string) : undefined,
-        medico_id: req.query.medicoId as string
+        medico_id: req.query.medico_id as string
       };
       
       const resumen = await reporteService.generarResumen(filtro);
@@ -87,14 +88,7 @@ class ReporteController {
    */
   async generarReporteMisCitas(req: Request, res: Response, next: NextFunction) {
     try {
-      if (!req.user || req.user.rol !== 'medico') {
-        return res.status(403).json({
-          status: 'error',
-          message: 'No autorizado'
-        });
-      }
-      
-      const medicoId = req.user.id;
+      const medicoId = await getMedicoIdDelUsuario(req.user!.id);
       
       const filtro: FiltroReporte = {
         desde: req.query.desde ? new Date(req.query.desde as string) : undefined,
@@ -114,19 +108,6 @@ class ReporteController {
       next(error);
       return;
     }
-  }
-  
-  // Mantener los métodos antiguos por compatibilidad
-  async obtenerResumen(req: Request, res: Response, next: NextFunction) {
-    return this.generarResumen(req, res, next);
-  }
-  
-  async obtenerReporteCitasJSON(req: Request, res: Response, next: NextFunction) {
-    return this.generarReporteCitas(req, res, next);
-  }
-  
-  async obtenerReporteMisCitas(req: Request, res: Response, next: NextFunction) {
-    return this.generarReporteMisCitas(req, res, next);
   }
 }
 

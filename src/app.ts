@@ -30,6 +30,9 @@ const io = new Server(httpServer, {
 // Configurar WebSockets
 setupSocketHandlers(io);
 
+// Detrás de un proxy (Vercel, Docker): el rate limit debe ver la IP real
+app.set('trust proxy', 1);
+
 // Middlewares globales
 app.use(helmet());
 app.use(cors());

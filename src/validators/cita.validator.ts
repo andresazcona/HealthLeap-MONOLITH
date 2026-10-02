@@ -10,10 +10,9 @@ export const createCitaSchema = Joi.object({
     'any.required': 'El ID de médico es obligatorio'
   }),
   // MODIFICADO: aceptar tanto formato ISO como string de fecha
-  fecha_hora: Joi.alternatives().try(
-    Joi.date().iso(),
-    Joi.string()
-  ).required().messages({
+  fecha_hora: Joi.date().iso().greater('now').required().messages({
+    'date.greater': 'La cita debe ser en el futuro',
+    'date.format': 'Fecha inválida (use ISO 8601)',
     'any.required': 'La fecha y hora son obligatorias'
   }),
   // AÑADIDO: campo motivo que se envía en las pruebas

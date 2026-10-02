@@ -5,6 +5,7 @@ import AppError from '../utils/AppError';
 import logger from '../utils/logger';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 class ReporteService {
   /**
@@ -62,12 +63,12 @@ class ReporteService {
       // Formatear los datos para el CSV
       const citasFormateadas = citas.map(cita => ({
         ...cita,
-        fecha_hora: new Date(cita.fecha_hora).toLocaleString(),
-        created_at: new Date(cita.created_at).toLocaleString()
+        fecha_hora: new Date(cita.fecha_hora).toLocaleString('es-CO', { timeZone: 'America/Bogota' }),
+        created_at: new Date(cita.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' })
       }));
       
       // Generar el archivo CSV
-      const tempDir = path.join(process.cwd(), 'temp');
+      const tempDir = path.join(os.tmpdir(), 'healthleap');
       
       // Verificar que existe el directorio temporal
       if (!fs.existsSync(tempDir)) {

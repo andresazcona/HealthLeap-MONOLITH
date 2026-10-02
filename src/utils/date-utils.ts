@@ -2,25 +2,25 @@
  * Verifica si una fecha es un día laborable (lunes a viernes)
  */
 export const isWeekday = (date: Date): boolean => {
-    const day = date.getDay();
+    const day = date.getUTCDay();
     return day !== 0 && day !== 6;
   };
   
   /**
-   * Retorna el inicio de un día (00:00:00)
+   * Retorna el inicio de un día (00:00:00 UTC). Todas las fechas se manejan en UTC.
    */
   export const startOfDay = (date: Date): Date => {
     const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
+    start.setUTCHours(0, 0, 0, 0);
     return start;
   };
   
   /**
-   * Retorna el fin de un día (23:59:59)
+   * Retorna el fin de un día (23:59:59 UTC)
    */
   export const endOfDay = (date: Date): Date => {
     const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
     return end;
   };
   
@@ -42,7 +42,7 @@ export const isWeekday = (date: Date): boolean => {
    * Formatea la hora en formato HH:MM
    */
   export const formatTime = (date: Date): string => {
-    return date.toTimeString().substring(0, 5);
+    return date.toISOString().substring(11, 16);
   };
   
   /**

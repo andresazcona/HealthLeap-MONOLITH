@@ -50,10 +50,24 @@ jobs:
       run: npm run test:unit
     
     - name: Run integration tests
-      run: npm run test:integration || echo "Integration tests skipped"
+      run: npm run test:integration
       
-    - name: Run API tests
-      run: npm run test:api || echo "API tests skipped"
+    - name: Build
+      run: npm run build
+
+    - name: E2E against real Postgres
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/healthleap_test
+        JWT_SECRET: ci_secret
+        JWT_REFRESH_SECRET: ci_refresh_secret
+        EMAIL_USER: ci@example.com
+        EMAIL_APP_PASSWORD: disabled
+        PORT: 3000
+      run: |
+        npm run db:setup
+        node dist/server.js &
+        npx --yes wait-on -t 30000 http://localhost:3000/health
+        npm run test:e2e:api
     
     - name: Generate test reports
       run: npm run test:report || echo "Report generation skipped"

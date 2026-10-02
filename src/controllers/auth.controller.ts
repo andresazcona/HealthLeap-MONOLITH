@@ -5,7 +5,8 @@ import AppError from '../utils/AppError';
 class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await authService.register(req.body);
+      // El registro público solo crea pacientes; los demás roles los crea un admin
+      const result = await authService.register({ ...req.body, rol: 'paciente' });
       res.status(201).json({
         status: 'success',
         data: result

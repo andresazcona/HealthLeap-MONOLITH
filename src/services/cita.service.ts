@@ -3,7 +3,8 @@ import medicoRepository from '../repositories/medico.repo';
 import { Cita, CitaInput, CitaUpdateInput, CitaCompleta, CitaFiltro, EstadoCita } from '../models/cita';
 import AppError from '../utils/AppError';
 import notificationService from './notification.service';
-import { startOfDay, endOfDay } from '../utils/date-utils';
+import { startOfDay, endOfDay, formatDate } from '../utils/date-utils';
+import disponibilidadRepository from '../repositories/disponibilidad.repo';
 import { Server } from 'socket.io';
 import { enviarNotificacion } from '../realtime/socket-handler';
 
@@ -27,7 +28,15 @@ class CitaService {
       throw new AppError('Médico no encontrado', 404);
     }
     
-    // La verificación de disponibilidad se hace en el repositorio
+    // No se puede agendar sobre un horario que el médico bloqueó
+    const inicio = new Date(citaData.fecha_hora);
+    const fin = new Date(inicio.getTime() + medico.duracion_cita * 60000);
+    const bloqueos = await disponibilidadRepository.getBloquesBloqueados(medico.id, formatDate(inicio));
+    if (bloqueos.some(b => inicio < b.fin && b.inicio < fin)) {
+      throw new AppError('El médico bloqueó ese horario', 400);
+    }
+
+    // El choque con otras citas se verifica en el repositorio
     const newCita = await citaRepository.create(citaData);
     
     // Buscar la cita completa
@@ -219,7 +228,7 @@ class CitaService {
   async enviarRecordatoriosCitasDiaSiguiente(): Promise<number> {
     // Calcular el rango de fechas para el día siguiente
     const manana = new Date();
-    manana.setDate(manana.getDate() + 1);
+    manana.setUTCDate(manana.getUTCDate() + 1);
     
     const inicio = startOfDay(manana);
     const fin = endOfDay(manana);

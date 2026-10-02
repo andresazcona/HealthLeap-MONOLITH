@@ -4,11 +4,16 @@ import medicoRepository from '../../src/repositories/medico.repo';
 import notificationService from '../../src/services/notification.service';
 import { CitaInput, CitaUpdateInput, EstadoCita } from '../../src/models/cita';
 import AppError from '../../src/utils/AppError';
+import disponibilidadRepository from '../../src/repositories/disponibilidad.repo';
 
 // Mock dependencies
 jest.mock('../../src/repositories/cita.repo');
 jest.mock('../../src/repositories/medico.repo');
 jest.mock('../../src/services/notification.service');
+jest.mock('../../src/repositories/disponibilidad.repo', () => ({
+  __esModule: true,
+  default: { getBloquesBloqueados: jest.fn().mockResolvedValue([]) }
+}));
 jest.mock('../../src/utils/logger');
 
 describe('CitaService', () => {
@@ -68,6 +73,17 @@ describe('CitaService', () => {
       expect(citaRepository.findCompletaById).toHaveBeenCalledWith(mockCita.id);
       expect(notificationService.enviarConfirmacionCita).toHaveBeenCalledWith(mockCitaCompleta);
       expect(result).toEqual(mockCitaCompleta);
+    });
+
+    it('should reject an appointment inside a blocked slot', async () => {
+      (medicoRepository.findById as jest.Mock).mockResolvedValue(mockMedico);
+      const inicio = new Date(mockCitaInput.fecha_hora);
+      (disponibilidadRepository.getBloquesBloqueados as jest.Mock).mockResolvedValueOnce([
+        { inicio, fin: new Date(inicio.getTime() + 60 * 60000) }
+      ]);
+
+      await expect(citaService.createCita(mockCitaInput)).rejects.toThrow('El médico bloqueó ese horario');
+      expect(citaRepository.create).not.toHaveBeenCalled();
     });
 
     it('should throw an error if medico does not exist', async () => {

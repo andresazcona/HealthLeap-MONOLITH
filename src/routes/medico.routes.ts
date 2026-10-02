@@ -9,30 +9,7 @@ const router = Router();
 
 // Rutas públicas
 router.get('/especialidades', medicoController.getAllEspecialidades);
-router.get('/buscar', validateSchema(filtroMedicoSchema), medicoController.getByFilters);
-
-// NUEVA RUTA - Crear médico en formato plano para pruebas
-router.post('/', authenticate, authorize('admin'), (req, res, next) => {
-  // Convertir estructura plana a estructura esperada
-  const medicoData = {
-    usuario: {
-      nombre: req.body.nombre,
-      email: req.body.email,
-      password: req.body.password
-    },
-    especialidad: req.body.especialidad,
-    centro_id: req.body.centro_id,
-    duracion_cita: req.body.duracion_cita || 30
-  };
-  
-  // Reemplazar el body original
-  req.body = medicoData;
-  
-  // Continuar al controlador original
-  validateSchema(createMedicoCompletoSchema)(req, res, () => {
-    medicoController.create(req, res, next);
-  });
-});
+router.get('/buscar', validateSchema(filtroMedicoSchema, 'query'), medicoController.getByFilters);
 
 // Rutas protegidas
 router.use(authenticate);

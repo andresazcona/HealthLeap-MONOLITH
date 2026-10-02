@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { getMedicoIdDelUsuario } from '../utils/medico-del-usuario';
 import medicoService from '../services/medico.service';
 import disponibilidadService from '../services/disponibilidad.service';
 
@@ -127,7 +128,9 @@ class MedicoController {
    */
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const updatedMedico = await medicoService.updateMedico(req.params.id, req.body);
+      // PATCH /perfil no trae :id; el médico edita su propio perfil
+      const medicoId = req.params.id || await getMedicoIdDelUsuario(req.user!.id);
+      const updatedMedico = await medicoService.updateMedico(medicoId, req.body);
       
       res.status(200).json({
         status: 'success',

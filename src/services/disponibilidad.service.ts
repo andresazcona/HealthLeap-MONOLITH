@@ -111,7 +111,7 @@ class DisponibilidadService {
           
           // Verificar si hay solapamiento
           if (bloque.inicio < citaFin && citaInicio < bloque.fin) {
-            throw new AppError(`No se puede bloquear el horario porque ya hay una cita agendada con ${cita.nombre_paciente} a las ${citaInicio.toLocaleTimeString()}`, 400);
+            throw new AppError(`No se puede bloquear el horario porque ya hay una cita agendada con ${cita.nombre_paciente} a las ${citaInicio.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' })}`, 400);
           }
         }
       }

@@ -60,12 +60,13 @@ class DisponibilidadRepository {
       const duracionCita = medico.duracion_cita;
       const bloques: BloqueDisponible[] = [];
       
-      // Horario de atención: 8am a 5pm (ajustable)
+      // Horario de atención 8:00 a 17:00 hora Colombia (UTC-5) = 13:00 a 22:00 UTC
+      // ponytail: horario fijo para todos; mover a columnas de medicos si cada uno tiene el suyo
       const horaInicio = new Date(inicioDelDia);
-      horaInicio.setHours(8, 0, 0, 0);
+      horaInicio.setUTCHours(13, 0, 0, 0);
       
       const horaFin = new Date(inicioDelDia);
-      horaFin.setHours(17, 0, 0, 0);
+      horaFin.setUTCHours(22, 0, 0, 0);
       
       // Generar todos los bloques posibles
       for (let tiempo = horaInicio; tiempo < horaFin; tiempo = new Date(tiempo.getTime() + duracionCita * 60000)) {
@@ -143,8 +144,8 @@ class DisponibilidadRepository {
       
       // Insertar nuevos bloques bloqueados
       for (const bloque of config.bloques_bloqueados) {
-        const horaInicio = bloque.inicio.toTimeString().substring(0, 8);
-        const horaFin = bloque.fin.toTimeString().substring(0, 8);
+        const horaInicio = new Date(bloque.inicio).toISOString().substring(11, 19);
+        const horaFin = new Date(bloque.fin).toISOString().substring(11, 19);
         
         await query(
           `INSERT INTO bloques_bloqueados (medico_id, fecha, hora_inicio, hora_fin)
@@ -244,7 +245,8 @@ class DisponibilidadRepository {
   }
   
   private combinarFechaHora(fecha: string, hora: string): Date {
-    const resultado = new Date(`${fecha}T${hora}`);
+    // Fechas y horas se guardan en UTC
+    const resultado = new Date(`${fecha}T${hora}Z`);
     return resultado;
   }
 }

@@ -12,34 +12,26 @@ export const disponibilidadQuerySchema = Joi.object({
 }).options({ allowUnknown: true });
 
 export const bloqueDisponibleSchema = Joi.object({
-  inicio: Joi.alternatives().try(
-    Joi.date().iso(),
-    Joi.string()
-  ).required().messages({
+  inicio: Joi.date().iso().required().messages({
     'any.required': 'La hora de inicio es obligatoria'
   }),
-  fin: Joi.alternatives().try(
-    Joi.date().iso(),
-    Joi.string()
-  ).required().messages({
+  fin: Joi.date().iso().greater(Joi.ref('inicio')).required().messages({
+    'date.greater': 'La hora de fin debe ser posterior a la de inicio',
     'any.required': 'La hora de fin es obligatoria'
   })
 });
 
-// MODIFICADA: aceptar tanto bloques como bloques_bloqueados
+// medico_id es obligatorio para admin; un médico bloquea su propia agenda
 export const configuracionAgendaSchema = Joi.object({
-  medico_id: Joi.string().uuid().required().messages({
-    'string.guid': 'ID de médico inválido',
-    'any.required': 'El ID del médico es obligatorio'
+  medico_id: Joi.string().uuid().optional().messages({
+    'string.guid': 'ID de médico inválido'
   }),
-  fecha: Joi.string().required().messages({
-    'string.empty': 'La fecha es obligatoria',
+  fecha: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
+    'string.pattern.base': 'Formato de fecha inválido (use YYYY-MM-DD)',
     'any.required': 'La fecha es obligatoria'
   }),
-  // Permitir tanto bloques como bloques_bloqueados
-  bloques: Joi.array().items(Joi.string()).optional(),
-  bloques_bloqueados: Joi.array().items(bloqueDisponibleSchema).optional()
-}).or('bloques', 'bloques_bloqueados'); // Requiere al menos uno de estos campos
+  bloques_bloqueados: Joi.array().items(bloqueDisponibleSchema).min(1).required()
+});
 
 export const cerrarAgendaSchema = Joi.object({
   medicoId: Joi.string().uuid().required().messages({

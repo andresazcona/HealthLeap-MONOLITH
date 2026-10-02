@@ -17,9 +17,6 @@ export const registerSchema = Joi.object({
     'string.empty': 'La contraseña es obligatoria',
     'any.required': 'La contraseña es obligatoria'
   }),
-  rol: Joi.string().valid('paciente', 'medico', 'admisión', 'admin').default('paciente').messages({
-    'any.only': 'Rol no válido'
-  })
 });
 
 export const loginSchema = Joi.object({

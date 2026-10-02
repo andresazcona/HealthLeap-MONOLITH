@@ -90,9 +90,9 @@ describe('Disponibilidad Repository', () => {
       // Mock para encontrar al médico
       (medicoRepo.findById as jest.Mock).mockResolvedValue(mockMedico);
       
-      // Crear una cita a las 10:00 AM
+      // Cita a las 10:00 hora Colombia (15:00 UTC)
       const fechaCita = new Date(mockFecha);
-      fechaCita.setHours(10, 0, 0, 0);
+      fechaCita.setUTCHours(15, 0, 0, 0);
       
       // Mock para encontrar citas (con una cita existente)
       (citaRepo.findByMedicoId as jest.Mock).mockResolvedValue({ 
@@ -111,7 +111,7 @@ describe('Disponibilidad Repository', () => {
       
       // Verificar que el horario de 10:00 AM no está entre los disponibles
       const bloqueDeLas10 = result.find(b => 
-        b.inicio.getHours() === 10 && b.inicio.getMinutes() === 0
+        b.inicio.getUTCHours() === 15 && b.inicio.getUTCMinutes() === 0
       );
       
       expect(bloqueDeLas10).toBeUndefined();
