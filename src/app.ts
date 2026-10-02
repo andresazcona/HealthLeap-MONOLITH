@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -53,6 +54,9 @@ app.use('/api/notify', notificationRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/reportes', reporteRoutes);
 app.use('/api/health', healthRoutes);
+
+// Consola web de demo (public/index.html)
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Ruta de health check
 app.get('/health', (req, res) => {

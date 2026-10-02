@@ -93,6 +93,8 @@ npm run db:setup       # crea las tablas y carga los datos de demo
 npm run dev            # http://localhost:3000
 ```
 
+Abre **http://localhost:3000**: la API trae una consola web ([`public/`](public)) para probar cada rol sin Postman: agendar, marcar llegada, atender, bloquear horarios y ver reportes.
+
 ### Cuentas de demo
 
 Las crea `npm run db:setup`. Todas usan la contraseña `Demo1234!`.
